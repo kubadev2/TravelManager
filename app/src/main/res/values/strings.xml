@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TravelManager</string>
+    <string name="trip_image_desc">Obraz</string>
+</resources>

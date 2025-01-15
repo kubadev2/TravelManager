@@ -1,0 +1,35 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Ignorowanie cache Gradle
+**/app/wrapper/dists/
+**/app/caches/
+**/app/build/
+
+# Ignorowanie plików dokumentacji Gradle
+**/docs/
+**/*.html
+**/*.md
+
+# Ignorowanie logów i plików tymczasowych
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
+
+# Ignorowanie systemowych plików konwersji LF/CRLF
+*.orig
