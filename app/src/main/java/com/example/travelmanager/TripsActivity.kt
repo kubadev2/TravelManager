@@ -1,55 +1,82 @@
 package com.example.travelmanager
 
+import android.annotation.SuppressLint
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
+import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.travelmanager.R
-import com.example.travelmanager.Trip
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QuerySnapshot
-import com.google.firebase.firestore.DocumentSnapshot
 
 class TripsActivity : AppCompatActivity() {
 
     private val db = FirebaseFirestore.getInstance()
-    private lateinit var tripsAdapter: TripsAdapter
+    private lateinit var tripAdapter: TripAdapter
+    private lateinit var recyclerViewTrips: RecyclerView
+    private lateinit var fabAddTrip: ImageButton
+    private lateinit var btnHamburger: ImageButton
+    private lateinit var tvEmail: TextView
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_trips)  // Upewnij się, że masz odpowiedni layout XML
+        setContentView(R.layout.activity_trips)
 
-        // Initialize RecyclerView
-        val recyclerViewTrips = findViewById<RecyclerView>(R.id.recyclerViewTrips)
+        // Ustawiamy RecyclerView
+        recyclerViewTrips = findViewById(R.id.recyclerViewTrips)
         recyclerViewTrips.layoutManager = LinearLayoutManager(this)
-        tripsAdapter = TripsAdapter()
-        recyclerViewTrips.adapter = tripsAdapter
 
-        // Add button action
-        val buttonAddTrip = findViewById<Button>(R.id.buttonAddTrip)  // Inicjalizacja przycisku
-        buttonAddTrip.setOnClickListener {
-            // Logika dodawania nowej wycieczki
-            Toast.makeText(this, "Dodaj nową wycieczkę", Toast.LENGTH_SHORT).show()
+        // Inicjalizujemy adapter
+        tripAdapter = TripAdapter(emptyList())
+        recyclerViewTrips.adapter = tripAdapter
+
+        // Pobieramy dane z Firestore
+        fetchTrips()
+
+        // Obsługa FloatingActionButton
+        fabAddTrip = findViewById(R.id.fabAddTrip)
+        fabAddTrip.setOnClickListener {
+            Toast.makeText(this, "Dodawanie wycieczki jeszcze nie jest zaimplementowane.", Toast.LENGTH_SHORT).show()
         }
 
-        // Fetch trips from Firestore
-        fetchTrips()
+        // Obsługa hamburgera
+        btnHamburger = findViewById(R.id.btnHamburger)
+        tvEmail = findViewById(R.id.tvEmail)
+
+        btnHamburger.setOnClickListener {
+            // Sprawdzamy, czy użytkownik jest zalogowany
+            val user = auth.currentUser
+            if (user != null) {
+                // Jeśli użytkownik jest zalogowany, wyświetlamy jego e-mail
+                tvEmail.text = user.email
+                tvEmail.visibility = if (tvEmail.visibility == View.GONE) View.VISIBLE else View.GONE
+            } else {
+                // Jeśli użytkownik nie jest zalogowany, wyświetlamy komunikat
+                tvEmail.text = "Brak zalogowanego użytkownika"
+                tvEmail.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun fetchTrips() {
         db.collection("trips")
             .get()
-            .addOnSuccessListener { result: QuerySnapshot ->
+            .addOnSuccessListener { result ->
                 val tripsList = mutableListOf<Trip>()
-                for (document: DocumentSnapshot in result) {
+                for (document in result) {
                     val trip = document.toObject(Trip::class.java)
                     if (trip != null) {
                         tripsList.add(trip)
                     }
                 }
-                tripsAdapter.submitList(tripsList)
+                // Zaktualizuj adapter
+                tripAdapter = TripAdapter(tripsList)
+                recyclerViewTrips.adapter = tripAdapter
             }
             .addOnFailureListener { exception ->
                 Toast.makeText(this, "Błąd pobierania danych: $exception", Toast.LENGTH_SHORT).show()

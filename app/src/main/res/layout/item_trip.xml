@@ -1,49 +1,51 @@
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <data>
         <variable
             name="trip"
             type="com.example.travelmanager.Trip" />
     </data>
-    <LinearLayout
+
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_margin="8dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp">
 
-        <ImageView
-            android:id="@+id/tripImage"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:src="@{trip.imageUrl}"
-            android:contentDescription="@string/trip_image_desc"
-            android:scaleType="centerCrop"/>
-
-        <TextView
-            android:id="@+id/destination"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@{trip.destination}"
-            android:textSize="18sp"
-            android:textStyle="bold"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/startDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@{trip.startDate}" />
+            <!-- Tytuł wycieczki -->
+            <TextView
+                android:id="@+id/tripName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{trip.name}"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/endDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@{trip.endDate}" />
+            <!-- Miejsce docelowe -->
+            <TextView
+                android:id="@+id/tripDestination"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{trip.destination}"
+                android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@{trip.description}"
-            android:maxLines="3"
-            android:ellipsize="end"/>
-    </LinearLayout>
+            <!-- Cena wycieczki -->
+            <TextView
+                android:id="@+id/tripPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{String.valueOf(trip.price)}"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 </layout>

@@ -12,7 +12,20 @@
           "package_name": "com.example.travelmanager"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "761168923809-k4ek2f4gklrdn51uuaj8c90ga2kki32m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.travelmanager",
+            "certificate_hash": "0433b50270df50e297719a7c2c79eeb66068f7a3"
+          }
+        },
+        {
+          "client_id": "761168923809-6b9sc0l414455hdcttqs8de5upc0duj8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCakHTE8A_5EAsWKIxKeIpc39gkyGBrmzQ"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "761168923809-6b9sc0l414455hdcttqs8de5upc0duj8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

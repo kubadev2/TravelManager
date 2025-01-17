@@ -4,28 +4,57 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".TripsActivity">
+    android:background="#FFFFFF">
 
-    <!-- RecyclerView to display list of trips -->
+    <!-- RecyclerView do wyświetlania wycieczek -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewTrips"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/buttonAddTrip"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:forceHasOverlappingRendering="true"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Button to add new trip -->
-    <Button
-        android:id="@+id/buttonAddTrip"
+    <!-- FloatingActionButton do dodawania wycieczek -->
+
+    <ImageButton
+        android:id="@+id/fabAddTrip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Dodaj wycieczkę"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/recyclerViewTrips"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        android:background="#00FFFFFF"
+        android:contentDescription="@string/add_trip"
+        app:srcCompat="@drawable/ic_add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"/>
+
+    <ImageButton
+        android:id="@+id/btnHamburger"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#00FFFFFF"
+        app:srcCompat="@drawable/ic_menu"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="@string/menu" />
+
+    <TextView
+        android:id="@+id/tvEmail"
+        android:layout_width="250dp"
+        android:layout_height="0dp"
+        android:background="#5C00FF"
+        android:padding="16dp"
+        android:text="email@example.com"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.5"
+        tools:ignore="MissingConstraints" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

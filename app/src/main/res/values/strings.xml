@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">TravelManager</string>
     <string name="trip_image_desc">Obraz</string>
+    <string name="default_web_client_id">761168923809-6b9sc0l414455hdcttqs8de5upc0duj8.apps.googleusercontent.com</string>
+    <string name="add_trip">Dodaj wycieczkę</string>
+    <string name="menu">Menu</string>
 </resources>

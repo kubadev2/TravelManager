@@ -1,10 +1,9 @@
 package com.example.travelmanager
 
-data class Trip(
-    val tripId: String = "",
-    val destination: String = "",
-    val startDate: String = "",
-    val endDate: String = "",
-    val description: String = "",
-    val imageUrl: String = ""
+class Trip // Konstruktor
+    (// Gettery i settery
+    var name: String,
+    var destination: String,
+    var price: Double, // Dodaj pole do przechowywania URL obrazu
+    var imageUrl: String
 )
