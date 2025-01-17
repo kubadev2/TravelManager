@@ -2,10 +2,11 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    android:id="@+id/rootLayout">
+    tools:context=".TripsActivity">
+
 
     <!-- RecyclerView do wyświetlania wycieczek -->
     <androidx.recyclerview.widget.RecyclerView
@@ -23,13 +24,13 @@
         android:id="@+id/fabAddTrip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:background="#00FFFFFF"
         android:contentDescription="@string/add_trip"
-        app:srcCompat="@drawable/ic_add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"
-        android:layout_marginEnd="16dp"/>
+        app:srcCompat="@drawable/ic_add" />
 
     <ImageButton
         android:id="@+id/btnHamburger"
@@ -54,7 +55,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintWidth_percent="0.5"
         tools:ignore="MissingConstraints" />
 
     <!-- Przycisk Wyloguj się -->
@@ -67,9 +67,9 @@
         android:focusable="true"
         android:padding="16dp"
         android:text="Wyloguj się"
-        android:visibility="gone"
         android:textColor="#FF0000"
         android:textSize="16sp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.869"
@@ -81,11 +81,88 @@
         android:layout_height="match_parent"
         android:background="#80000000"
         android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/tvEmail"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/addTripForm"
+        android:layout_width="match_parent"
+        android:layout_height="407dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_percent="0.5"
+        tools:ignore="MissingConstraints"
+        tools:layout_editor_absoluteX="0dp">
+
+
+        <!-- Pole Miejsce Wyjazdu -->
+
+        <!-- Pole Okres Wyjazdu -->
+
+        <EditText
+            android:id="@+id/etTripDates2"
+            android:layout_width="0dp"
+            android:layout_height="51dp"
+            android:layout_marginTop="40dp"
+            android:hint="Data wyjazdu dd/mm/rrrr"
+            android:inputType="datetime|date"
+            app:layout_constraintHorizontal_bias="0.506"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/etDeparturePlace" />
+
+        <EditText
+            android:id="@+id/etDeparturePlace"
+            android:layout_width="0dp"
+            android:layout_height="53dp"
+            android:layout_marginTop="40dp"
+            android:hint="Cel podróży"
+            app:layout_constraintHorizontal_bias="0.493"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:id="@+id/etTripDates"
+            android:layout_width="0dp"
+            android:layout_height="51dp"
+            android:layout_marginTop="132dp"
+            android:hint="Data powrotu dd/mm/rrrr"
+            android:inputType="datetime|date"
+            app:layout_constraintHorizontal_bias="0.506"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/etDeparturePlace" />
+
+        <Button
+            android:id="@+id/btnSaveTrip"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="28dp"
+            android:text="Zapisz"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:ignore="MissingConstraints"
+            tools:layout_editor_absoluteX="2dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_begin="20dp" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <View
+        android:id="@+id/addTripClose"
+        android:layout_width="412dp"
+        android:layout_height="0dp"
+        android:background="#59333333"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/addTripForm"
+        app:layout_constraintHeight_percent="0.5"
+        tools:ignore="MissingConstraints" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

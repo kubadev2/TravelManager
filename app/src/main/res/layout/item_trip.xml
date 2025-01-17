@@ -1,51 +1,46 @@
-<?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+        <!-- Powiązanie z klasą Trip -->
         <variable
             name="trip"
             type="com.example.travelmanager.Trip" />
     </data>
 
-    <androidx.cardview.widget.CardView
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        android:padding="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Wyświetlanie celu wycieczki -->
+        <TextView
+            android:id="@+id/tripDestination"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:text="@{trip.departurePlace}"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tripDates" />
 
-            <!-- Tytuł wycieczki -->
-            <TextView
-                android:id="@+id/tripName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@{trip.name}"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+        <!-- Wyświetlanie daty rozpoczęcia i zakończenia wycieczki -->
+        <TextView
+            android:id="@+id/tripDates"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text='@{trip.tripDates +"-"+ trip.endDateCalculated()}'
+            android:textSize="14sp"
+            android:textColor="#757575"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tripDestination"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-            <!-- Miejsce docelowe -->
-            <TextView
-                android:id="@+id/tripDestination"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@{trip.destination}"
-                android:textSize="16sp" />
 
-            <!-- Cena wycieczki -->
-            <TextView
-                android:id="@+id/tripPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@{String.valueOf(trip.price)}"
-                android:textSize="16sp" />
 
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

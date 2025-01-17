@@ -9,14 +9,16 @@ class TripAdapter(private val trips: List<Trip>) : RecyclerView.Adapter<TripAdap
 
     inner class TripViewHolder(private val binding: ItemTripBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
         fun bind(trip: Trip) {
             binding.trip = trip
-            binding.executePendingBindings()
+            binding.executePendingBindings() // Aktualizacja danych
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TripViewHolder {
-        val binding = ItemTripBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = ItemTripBinding.inflate(inflater, parent, false)
         return TripViewHolder(binding)
     }
 
@@ -26,3 +28,4 @@ class TripAdapter(private val trips: List<Trip>) : RecyclerView.Adapter<TripAdap
 
     override fun getItemCount(): Int = trips.size
 }
+

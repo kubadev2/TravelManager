@@ -15,6 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.example.travelmanager.R
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
