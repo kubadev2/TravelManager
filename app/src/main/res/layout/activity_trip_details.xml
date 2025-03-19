@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <!-- Możesz tu dodać zmienne, jeśli potrzebujesz -->
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/rootLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <!-- Szczegóły wycieczki -->
+        <TextView
+            android:id="@+id/tvDeparturePlace"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Departure Place"
+            android:textSize="18sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <TextView
+            android:id="@+id/tvStartDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Date"
+            android:textSize="18sp"
+            app:layout_constraintTop_toBottomOf="@id/tvDeparturePlace"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvEndDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="End Date"
+            android:textSize="18sp"
+            app:layout_constraintTop_toBottomOf="@id/tvStartDate"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="8dp"/>
+
+        <!-- Przyciski wyboru i przesyłania pliku PDF -->
+        <Button
+            android:id="@+id/btnSelectPdf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wybierz plik PDF"
+            app:layout_constraintTop_toBottomOf="@id/tvEndDate"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp"/>
+
+        <Button
+            android:id="@+id/btnUploadTicket"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Prześlij bilety"
+            android:enabled="false"
+            app:layout_constraintTop_toBottomOf="@id/btnSelectPdf"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvSelectedFile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Brak wybranego pliku"
+            app:layout_constraintTop_toBottomOf="@id/btnUploadTicket"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="8dp"/>
+
+        <!-- RecyclerView do wyświetlania biletu (miniatur) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvTickets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/tvSelectedFile"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp"/>
+
+        <!-- Opcjonalnie dodatkowy opis zapisanych biletów -->
+        <TextView
+            android:id="@+id/tvSavedTickets"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Zapisane bilety"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/rvTickets"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

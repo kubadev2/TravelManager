@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <!-- Możesz dodać zmienne, jeśli potrzebujesz -->
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- TabLayout do zakładek planu dnia -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <!-- ViewPager2 do wyświetlania fragmentów z planem dnia -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Dodatkowe przyciski do zapisu szczegółów i dodawania biletów -->
+        <TextView
+            android:id="@+id/btnSaveDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:background="#FFDDDDDD"
+            android:text="Zapisz szczegóły" />
+
+        <TextView
+            android:id="@+id/btnUploadTicket"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:background="#FFDDDDDD"
+            android:text="Dodaj bilet" />
+
+        <!-- Kontener na bilety -->
+        <LinearLayout
+            android:id="@+id/ticketsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
+</layout>

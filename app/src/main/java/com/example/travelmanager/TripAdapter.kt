@@ -1,11 +1,17 @@
 package com.example.travelmanager
 
+import com.example.travelmanager.TripDetailsActivity
+import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelmanager.databinding.ItemTripBinding
 
-class TripAdapter(private val trips: List<Trip>) : RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
+class TripAdapter(
+    private val context: Context,
+    private val trips: List<Trip>
+) : RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
 
     inner class TripViewHolder(private val binding: ItemTripBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -13,6 +19,15 @@ class TripAdapter(private val trips: List<Trip>) : RecyclerView.Adapter<TripAdap
         fun bind(trip: Trip) {
             binding.trip = trip
             binding.executePendingBindings() // Aktualizacja danych
+
+            // Kliknięcie w element listy – przejście do szczegółów
+            binding.root.setOnClickListener {
+                if (trip.tripId.isNotEmpty()) {
+                    val intent = Intent(context, TripDetailsActivity::class.java)
+                    intent.putExtra("tripId", trip.tripId) // Przekazujemy tripId
+                    context.startActivity(intent)
+                }
+            }
         }
     }
 
@@ -28,4 +43,3 @@ class TripAdapter(private val trips: List<Trip>) : RecyclerView.Adapter<TripAdap
 
     override fun getItemCount(): Int = trips.size
 }
-

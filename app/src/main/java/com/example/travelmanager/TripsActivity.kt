@@ -32,14 +32,14 @@ class TripsActivity : AppCompatActivity() {
     private lateinit var addTripClose: View
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private lateinit var etTripDates: EditText
+    private val tripsList = mutableListOf<Trip>()
 
     override fun onStart() {
         super.onStart()
-
         val currentUser = auth.currentUser
         if (currentUser != null) {
             tvEmail.text = currentUser.email
-            tvEmail.visibility = View.GONE // Ukryj e-mail po zalogowaniu
+            tvEmail.visibility = View.GONE
             btnLogout.visibility = View.GONE
         } else {
             tvEmail.text = "Brak zalogowanego użytkownika"
@@ -55,14 +55,13 @@ class TripsActivity : AppCompatActivity() {
 
         recyclerViewTrips = findViewById(R.id.recyclerViewTrips)
         recyclerViewTrips.layoutManager = LinearLayoutManager(this)
-
-        tripAdapter = TripAdapter(emptyList())
+        tripAdapter = TripAdapter(this, tripsList)
         recyclerViewTrips.adapter = tripAdapter
 
         fetchTrips()
 
         addTripForm = findViewById(R.id.addTripForm)
-        addTripForm.visibility = View.GONE // Ukryj formularz na początku
+        addTripForm.visibility = View.GONE
         addTripClose = findViewById(R.id.addTripClose)
         addTripClose.visibility = View.GONE
         addTripClose.setOnClickListener {
@@ -74,46 +73,33 @@ class TripsActivity : AppCompatActivity() {
         val btnSaveTrip = findViewById<View>(R.id.btnSaveTrip)
         btnSaveTrip.setOnClickListener {
             val departurePlace = findViewById<EditText>(R.id.etDeparturePlace).text.toString()
-            val tripDates = etTripDates.text.toString()  // Data wyjazdu
-            val returnDates = findViewById<EditText>(R.id.etTripDates2).text.toString()  // Data powrotu
+            val startDate = findViewById<EditText>(R.id.etTripDates).text.toString()
+            val endDate = findViewById<EditText>(R.id.etTripDates2).text.toString()
             val currentUser = auth.currentUser
 
-            if (currentUser != null && departurePlace.isNotEmpty() && tripDates.isNotEmpty() && returnDates.isNotEmpty()) {
-                // Walidacja daty
+            if (currentUser != null && departurePlace.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
                 val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val isValidDepartureDate = try {
-                    dateFormat.parse(tripDates) != null
+                try {
+                    val parsedStart = dateFormat.parse(startDate)
+                    val parsedEnd = dateFormat.parse(endDate)
+                    if (parsedStart != null && parsedEnd != null && parsedStart.after(parsedEnd)) {
+                        Toast.makeText(this, "Data rozpoczęcia nie może być późniejsza niż data zakończenia", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
                 } catch (e: Exception) {
-                    false
-                }
-
-                val isValidReturnDate = try {
-                    dateFormat.parse(returnDates) != null
-                } catch (e: Exception) {
-                    false
-                }
-
-                if (!isValidDepartureDate || !isValidReturnDate) {
                     Toast.makeText(this, "Proszę wprowadzić daty w formacie dd/MM/yyyy", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener  // Zatrzymanie zapisywania wycieczki
-                }
-
-                // Sprawdzamy, czy data wyjazdu nie jest późniejsza niż data powrotu
-                if (dateFormat.parse(tripDates)?.after(dateFormat.parse(returnDates)) == true) {
-                    Toast.makeText(this, "Data wyjazdu nie może być późniejsza niż data powrotu", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
-                val trip = mapOf(
+                val tripData = mapOf(
                     "userId" to currentUser.uid,
                     "departurePlace" to departurePlace,
-                    "tripDates" to tripDates,
-                    "returnDates" to returnDates,  // Dodajemy datę powrotu
-                    "timestamp" to System.currentTimeMillis()
+                    "startDate" to startDate,
+                    "endDate" to endDate
                 )
 
                 db.collection("trips")
-                    .add(trip)
+                    .add(tripData)
                     .addOnSuccessListener {
                         Toast.makeText(this, "Wycieczka zapisana pomyślnie", Toast.LENGTH_SHORT).show()
                         addTripForm.visibility = View.GONE
@@ -128,7 +114,6 @@ class TripsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Proszę wypełnić wszystkie pola lub zalogować się", Toast.LENGTH_SHORT).show()
             }
         }
-
 
         fabAddTrip = findViewById(R.id.fabAddTrip)
         fabAddTrip.setOnClickListener {
@@ -163,8 +148,7 @@ class TripsActivity : AppCompatActivity() {
 
         btnLogout.setOnClickListener {
             auth.signOut()
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
 
@@ -175,47 +159,38 @@ class TripsActivity : AppCompatActivity() {
         }
 
         etTripDates = findViewById(R.id.etTripDates2)
-        etTripDates.setOnClickListener {
-            showDateRangePicker()
-        }
+        etTripDates.setOnClickListener { showDateRangePicker() }
     }
 
     private fun showDateRangePicker() {
         val builder = MaterialDatePicker.Builder.dateRangePicker()
         val datePicker = builder.build()
-
         datePicker.addOnPositiveButtonClickListener { selection ->
             val startDate = selection?.first
             val endDate = selection?.second
-
-            val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) // Formatowanie daty
+            val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             val startFormatted = startDate?.let { format.format(Date(it)) }
             val endFormatted = endDate?.let { format.format(Date(it)) }
-
-            // Ustawienie dat w odpowiednich polach EditText
-            findViewById<EditText>(R.id.etTripDates).setText(startFormatted)  // Data wyjazdu
-            findViewById<EditText>(R.id.etTripDates2).setText(endFormatted)   // Data powrotu
+            findViewById<EditText>(R.id.etTripDates).setText(startFormatted)
+            findViewById<EditText>(R.id.etTripDates2).setText(endFormatted)
         }
-
         datePicker.show(supportFragmentManager, "date_range_picker")
     }
 
-
     private fun fetchTrips() {
         val currentUser = auth.currentUser
-
         if (currentUser != null) {
             db.collection("trips")
                 .whereEqualTo("userId", currentUser.uid)
                 .get()
                 .addOnSuccessListener { result ->
-                    val tripsList = mutableListOf<Trip>()
+                    tripsList.clear()
                     for (document in result) {
-                        val trip = document.toObject(Trip::class.java)
+                        // Pobieramy dane i kopiujemy document.id do pola tripId
+                        val trip = document.toObject(Trip::class.java).copy(tripId = document.id)
                         tripsList.add(trip)
                     }
-                    tripAdapter = TripAdapter(tripsList)
-                    recyclerViewTrips.adapter = tripAdapter
+                    tripAdapter.notifyDataSetChanged()
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Błąd pobierania danych: $exception", Toast.LENGTH_SHORT).show()
