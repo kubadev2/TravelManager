@@ -21,7 +21,6 @@ class TripDetailsActivity : AppCompatActivity() {
 
     private val PICK_PDF_REQUEST_CODE = 1001
 
-    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTripDetailsBinding.inflate(layoutInflater)
@@ -33,11 +32,15 @@ class TripDetailsActivity : AppCompatActivity() {
         if (tripId.isNotEmpty()) {
             fetchTripDetails(tripId)
             fetchTicketsForTrip()
+            // Załaduj fragment z planami podróży do kontenera flTripPlans
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.flTripPlans, TripDetailsFragment.newInstance(tripId))
+                .commit()
         } else {
             Toast.makeText(this, "Brak przekazanego ID wycieczki", Toast.LENGTH_SHORT).show()
         }
 
-        // Wybór pliku PDF przy użyciu ACTION_OPEN_DOCUMENT
+        // Obsługa wyboru pliku PDF
         binding.btnSelectPdf.setOnClickListener {
             val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
@@ -46,7 +49,7 @@ class TripDetailsActivity : AppCompatActivity() {
             startActivityForResult(openDocIntent, PICK_PDF_REQUEST_CODE)
         }
 
-        // Zapisanie URI pliku PDF w Firestore
+        // Obsługa zapisu URI pliku PDF
         binding.btnUploadTicket.setOnClickListener {
             selectedPdfUri?.let { uri ->
                 contentResolver.takePersistableUriPermission(

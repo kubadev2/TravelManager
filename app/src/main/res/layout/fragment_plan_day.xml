@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <data>
-        <!-- jeśli potrzebujesz zmiennych -->
+        <!-- Zdefiniuj zmienne, jeśli potrzebujesz -->
     </data>
 
     <LinearLayout
@@ -12,6 +12,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Nagłówek z tytułem dnia -->
         <TextView
             android:id="@+id/tvDayTitle"
             android:layout_width="wrap_content"
@@ -20,17 +21,36 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etPlanDetails"
+        <!-- Widok do wyświetlania planu (tylko do odczytu) -->
+        <TextView
+            android:id="@+id/tvPlanDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Wprowadź plan dnia" />
+            android:text="Brak planu..."
+            android:padding="8dp"
+            android:background="#EEEEEE"
+            android:longClickable="true" />
 
-        <Button
-            android:id="@+id/btnSavePlan"
+        <!-- Separator -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <!-- Podgląd biletu – ten układ pozostaje bez zmian -->
+        <TextView
+            android:id="@+id/tvTicketsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bilety"
+            android:textSize="16sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDayTickets"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Zapisz plan" />
+            android:layout_marginTop="8dp" />
 
     </LinearLayout>
 </layout>
+
+
