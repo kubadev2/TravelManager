@@ -22,7 +22,7 @@
             android:layout_height="wrap_content" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Sekcja biletów komunikacyjnych -->
+    <!-- Sekcja biletów w dialogu -->
     <LinearLayout
         android:id="@+id/llTickets"
         android:layout_width="0dp"
@@ -39,15 +39,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Bilety"
-            android:textSize="16sp" />
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnChooseFile"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Wybierz Plik"
             android:textSize="12sp"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

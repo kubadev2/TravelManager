@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <!-- Zdefiniuj zmienne, jeśli potrzeba -->
+        <!-- Zmienne, jeśli potrzebne -->
     </data>
 
     <LinearLayout
@@ -13,15 +13,15 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- TabLayout skonfigurowany jako scrollable -->
+        <!-- TabLayout skonfigurowany jako scrollable (minimalna wysokość ustawiona) -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             app:tabMode="scrollable"
             app:tabGravity="fill"
-            app:tabTextAppearance="@style/Widget.MaterialComponents.TabLayout"
-            />
+            app:tabTextAppearance="@style/Widget.MaterialComponents.TabLayout" />
 
         <!-- ViewPager2 dla planów dnia -->
         <androidx.viewpager2.widget.ViewPager2
@@ -29,6 +29,5 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
-
     </LinearLayout>
 </layout>

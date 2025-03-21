@@ -5,4 +5,7 @@
     <string name="add_trip">Dodaj wycieczkę</string>
     <string name="menu">Menu</string>
     <string name="ticket_image">Miniatura biletu</string>
+    <string name="edit_trip_details">Edytuj szczegóły wycieczki</string>
+    <string name="add_photo">Dodaj zdjęcie</string>
+    <string name="photo_desc">Zdjęcie z wycieczki</string>
 </resources>
