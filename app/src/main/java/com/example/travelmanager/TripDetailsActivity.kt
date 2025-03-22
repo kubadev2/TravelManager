@@ -1,11 +1,14 @@
 package com.example.travelmanager
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,36 +18,49 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
+import java.util.UUID
+import java.util.Date
 
 class TripDetailsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityTripDetailsBinding
     private val db = FirebaseFirestore.getInstance()
-    private var tripId: String = ""
-    private var selectedPdfUri: Uri? = null
-
-    // Dla wyboru PDF oraz zdjęć – uwzględniamy możliwość wyboru wielu zdjęć
-    private val PICK_PDF_REQUEST_CODE = 1001
-    private val PICK_PHOTO_REQUEST_CODE = 1002
     private val storage = FirebaseStorage.getInstance()
 
+    // Przechowujemy ID wycieczki w zmiennej, żeby dało się ją zapisać/odtworzyć
+    private var tripId: String = ""
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+
+    private val PICK_PDF_REQUEST_CODE = 1001
+    private val PICK_PHOTO_REQUEST_CODE = 1002
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Przywracamy tripId z savedInstanceState (jeśli istnieje)
+        tripId = savedInstanceState?.getString("TRIP_ID") ?: ""
+
         binding = ActivityTripDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        tripId = intent.getStringExtra("tripId") ?: ""
+        // Jeśli jeszcze nie mamy tripId z onSaveInstanceState, spróbujmy pobrać z Intent
+        if (tripId.isEmpty()) {
+            tripId = intent.getStringExtra("tripId") ?: ""
+        }
+
         Log.d("TripDetailsActivity", "Otrzymano tripId: $tripId")
 
         if (tripId.isNotEmpty()) {
             fetchTripDetails(tripId)
             fetchTicketsForTrip()
             fetchPhotosForTrip()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.flTripPlans, TripDetailsFragment.newInstance(tripId))
-                .commit()
+
+            if (supportFragmentManager.findFragmentById(R.id.flTripPlans) == null) {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.flTripPlans, TripDetailsFragment.newInstance(tripId))
+                    .commit()
+            }
         } else {
             Toast.makeText(this, "Brak przekazanego ID wycieczki", Toast.LENGTH_SHORT).show()
         }
@@ -67,6 +83,75 @@ class TripDetailsActivity : AppCompatActivity() {
             }
             startActivityForResult(openPhotoIntent, PICK_PHOTO_REQUEST_CODE)
         }
+
+        // Obsługa przycisku edycji wycieczki – otwiera dialog edycji danych
+        binding.btnEditTrip.setOnClickListener {
+            showEditTripDialog(
+                binding.tvDeparturePlace.text.toString(),
+                binding.tvStartDate.text.toString(),
+                binding.tvEndDate.text.toString()
+            )
+        }
+    }
+
+    // Zapisujemy tripId, żeby przy rotacji było można je przywrócić
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("TRIP_ID", tripId)
+    }
+
+    private fun showEditTripDialog(currentDeparture: String, currentStartDate: String, currentEndDate: String) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_trip, null)
+
+        val etDeparture = dialogView.findViewById<EditText>(R.id.etEditDeparture)
+        val etStartDate = dialogView.findViewById<EditText>(R.id.etEditStartDate)
+        val etEndDate = dialogView.findViewById<EditText>(R.id.etEditEndDate)
+
+        etDeparture.setText(currentDeparture)
+        etStartDate.setText(currentStartDate)
+        etEndDate.setText(currentEndDate)
+
+        AlertDialog.Builder(this)
+            .setTitle("Edytuj dane wycieczki")
+            .setView(dialogView)
+            .setPositiveButton("Zapisz") { dialog, _ ->
+                val newDeparture = etDeparture.text.toString()
+                val newStartDate = etStartDate.text.toString()
+                val newEndDate = etEndDate.text.toString()
+                updateTripDetails(newDeparture, newStartDate, newEndDate)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Anuluj") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun updateTripDetails(newDeparture: String, newStartDate: String, newEndDate: String) {
+        db.collection("trips").document(tripId)
+            .update(
+                mapOf(
+                    "departurePlace" to newDeparture,
+                    "startDate" to newStartDate,
+                    "endDate" to newEndDate
+                )
+            )
+            .addOnSuccessListener {
+                Toast.makeText(this, "Dane wycieczki zaktualizowane", Toast.LENGTH_SHORT).show()
+                binding.tvDeparturePlace.text = newDeparture
+                binding.tvStartDate.text = newStartDate
+                binding.tvEndDate.text = newEndDate
+
+                // aktualizacja liczby dni w planie wycieczki
+                val fragment = supportFragmentManager.findFragmentById(R.id.flTripPlans)
+                if (fragment is TripDetailsFragment && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    fragment.refreshPlans(newStartDate, newEndDate)
+                }
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(this, "Błąd aktualizacji: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun fetchTripDetails(tripId: String) {
@@ -128,13 +213,28 @@ class TripDetailsActivity : AppCompatActivity() {
             .whereEqualTo("tripId", tripId)
             .get()
             .addOnSuccessListener { result ->
-                val photos: List<Photo> = result.mapNotNull { document ->
+                val photos = result.mapNotNull { document ->
                     val photoUrl = document.getString("photoUrl") ?: return@mapNotNull null
                     Photo(document.id, photoUrl)
                 }
                 binding.rvPhotos.layoutManager =
                     LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-                binding.rvPhotos.adapter = PhotoAdapter(this, photos)
+                binding.rvPhotos.adapter = PhotoAdapter(
+                    context = this,
+                    photos = photos,
+                    onClick = { photo, position ->
+                        // Utwórz listę ścieżek zdjęć
+                        val photoUrls = ArrayList<String>()
+                        photos.forEach { photoUrls.add(it.photoUrl) }
+                        val intent = Intent(this, FullScreenPhotosActivity::class.java)
+                        intent.putStringArrayListExtra("photoList", photoUrls)
+                        intent.putExtra("startIndex", position)
+                        startActivity(intent)
+                    },
+                    onDelete = { photo ->
+                        deletePhoto(photo)
+                    }
+                )
             }
             .addOnFailureListener { exception ->
                 Toast.makeText(this, "Błąd pobierania zdjęć: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -150,7 +250,6 @@ class TripDetailsActivity : AppCompatActivity() {
                     pdfUri?.let { saveTicketUrlToFirestore(it) }
                 }
                 PICK_PHOTO_REQUEST_CODE -> {
-                    // Obsługa wyboru wielu zdjęć
                     if (data.clipData != null) {
                         val count = data.clipData!!.itemCount
                         for (i in 0 until count) {
@@ -174,7 +273,6 @@ class TripDetailsActivity : AppCompatActivity() {
     // Kopiuje plik z podanego URI do lokalnego katalogu aplikacji i zwraca jego absolutną ścieżkę.
     private fun copyFileToLocalStorage(uri: Uri): String? {
         return try {
-            // Używamy katalogu zdjęć aplikacji – upewnij się, że masz odpowiednie uprawnienia (jeśli używasz external storage)
             val folder = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             if (folder != null && !folder.exists()) {
                 folder.mkdirs()
@@ -193,12 +291,12 @@ class TripDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // Zamiast zapisywać URL z Firebase Storage, zapisujemy lokalną ścieżkę zdjęcia w Firestore
+    // Zapisuje lokalną ścieżkę zdjęcia w Firestore
     private fun savePhotoPathToFirestore(localPath: String) {
         val photoData = hashMapOf(
-            "photoUrl" to localPath,  // Zapisujemy lokalną ścieżkę
+            "photoUrl" to localPath,
             "tripId" to tripId,
-            "userId" to FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+            "userId" to auth.currentUser?.uid.orEmpty()
         )
         db.collection("photos")
             .add(photoData)
@@ -212,28 +310,28 @@ class TripDetailsActivity : AppCompatActivity() {
     }
 
     private fun saveTicketUrlToFirestore(uri: Uri) {
-        val storageRef = storage.reference.child("tripTickets/$tripId/ticket_${System.currentTimeMillis()}.pdf")
-        storageRef.putFile(uri)
+        try {
+            // Zapis uprawnień do tego pliku (żeby nie stracić dostępu po restarcie)
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+
+        // Zapisujemy po prostu URI w Firestore
+        val ticketData = hashMapOf(
+            "fileUrl" to uri.toString(),
+            "tripId" to tripId,
+            "userId" to auth.currentUser?.uid.orEmpty()
+        )
+
+        db.collection("tickets")
+            .add(ticketData)
             .addOnSuccessListener {
-                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    val ticketData = hashMapOf(
-                        "fileUrl" to downloadUri.toString(),
-                        "tripId" to tripId,
-                        "userId" to FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-                    )
-                    db.collection("tickets")
-                        .add(ticketData)
-                        .addOnSuccessListener {
-                            Toast.makeText(this, "Bilet został dodany", Toast.LENGTH_SHORT).show()
-                            fetchTicketsForTrip()
-                        }
-                        .addOnFailureListener { exception ->
-                            Toast.makeText(this, "Błąd zapisywania biletu: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
-                        }
-                }
+                Toast.makeText(this, "Bilet został dodany", Toast.LENGTH_SHORT).show()
+                fetchTicketsForTrip() // odśwież widok
             }
             .addOnFailureListener { exception ->
-                Toast.makeText(this, "Błąd przesyłania pliku: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Błąd zapisu biletu: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -247,6 +345,19 @@ class TripDetailsActivity : AppCompatActivity() {
             }
             .addOnFailureListener { exception ->
                 Toast.makeText(this, "Błąd usuwania biletu: $exception", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun deletePhoto(photo: Photo) {
+        db.collection("photos")
+            .document(photo.photoId)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(this, "Zdjęcie usunięte", Toast.LENGTH_SHORT).show()
+                fetchPhotosForTrip()
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(this, "Błąd usuwania zdjęcia: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
     }
 }

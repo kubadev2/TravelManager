@@ -1,54 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:tools="http://schemas.android.com/tools"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <!-- Zdefiniuj zmienne, jeśli potrzebujesz -->
+        <!-- Jeśli nie używasz Data Bindingu, nie musisz tu nic definiować -->
     </data>
 
-    <LinearLayout
+    <!-- ScrollView zapewni przewijanie, gdy tekst będzie długi -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp"
-        tools:ignore="ExtraText">
+        android:fillViewport="true">
 
-        <!-- Nagłówek z tytułem dnia -->
-        <TextView
-            android:id="@+id/tvDayTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Plan dnia"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
-
-        <!-- Widok do wyświetlania planu (tylko do odczytu) -->
-        <TextView
-            android:id="@+id/tvPlanDetails"
+        <!-- Prosty LinearLayout bez marginesów -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Brak planu..."
-            android:padding="8dp"
-            android:background="#EEEEEE"
-            android:longClickable="true" />
+            android:orientation="vertical">
 
-        <!-- Separator -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="8dp" />
+            <!-- Nagłówek dnia (opcjonalnie) -->
+            <TextView
+                android:id="@+id/tvDayTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Plan dnia 1"
+                android:textSize="18sp"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textStyle="bold" />
 
-        <!-- Tytuł sekcji biletów (podgląd) -->
-        <TextView
-            android:id="@+id/tvTicketsTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Bilety"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+            <!-- Główne pole z planem dnia, zajmujące całą szerokość ekranu -->
+            <TextView
+                android:id="@+id/tvPlanDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Brak planu..."
+                android:padding="8dp"
+                android:background="#EEEEEE"
+                android:longClickable="true"
+                android:textSize="16sp" />
 
-        <!-- RecyclerView dla podglądu biletów -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvDayTickets"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tvTicketsTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bilety"
+                android:textSize="16sp"
+                android:padding="8dp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvDayTickets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </layout>

@@ -8,11 +8,13 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
@@ -65,9 +67,7 @@ class TripsActivity : AppCompatActivity() {
         addTripClose = findViewById(R.id.addTripClose)
         addTripClose.visibility = View.GONE
         addTripClose.setOnClickListener {
-            addTripForm.visibility = View.GONE
-            addTripClose.visibility = View.GONE
-            fabAddTrip.visibility = View.VISIBLE
+            hideAddTripForm()
         }
 
         val btnSaveTrip = findViewById<View>(R.id.btnSaveTrip)
@@ -102,9 +102,7 @@ class TripsActivity : AppCompatActivity() {
                     .add(tripData)
                     .addOnSuccessListener {
                         Toast.makeText(this, "Wycieczka zapisana pomyślnie", Toast.LENGTH_SHORT).show()
-                        addTripForm.visibility = View.GONE
-                        addTripClose.visibility = View.GONE
-                        fabAddTrip.visibility = View.VISIBLE
+                        hideAddTripForm()
                         fetchTrips()
                     }
                     .addOnFailureListener { exception ->
@@ -160,6 +158,35 @@ class TripsActivity : AppCompatActivity() {
 
         etTripDates = findViewById(R.id.etTripDates2)
         etTripDates.setOnClickListener { showDateRangePicker() }
+
+        // Obsługa wstecznego – chowamy formularz, chowamy menu albo pokazujemy panel wylogowania
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // 1. Jeśli formularz jest otwarty, chowamy go
+                if (addTripForm.visibility == View.VISIBLE) {
+                    hideAddTripForm()
+                }
+                // 2. Jeśli menu jest widoczne, chowamy menu
+                else if (tvEmail.visibility == View.VISIBLE
+                    && btnLogout.visibility == View.VISIBLE
+                    && menuClose.visibility == View.VISIBLE
+                ) {
+                    tvEmail.visibility = View.GONE
+                    btnLogout.visibility = View.GONE
+                    menuClose.visibility = View.GONE
+                }
+                // 3. W przeciwnym wypadku pytamy o wylogowanie (dialog potwierdzenia)
+                else {
+                    showLogoutConfirmation()
+                }
+            }
+        })
+    }
+
+    private fun hideAddTripForm() {
+        addTripForm.visibility = View.GONE
+        addTripClose.visibility = View.GONE
+        fabAddTrip.visibility = View.VISIBLE
     }
 
     private fun showDateRangePicker() {
@@ -177,6 +204,24 @@ class TripsActivity : AppCompatActivity() {
         datePicker.show(supportFragmentManager, "date_range_picker")
     }
 
+    private fun showLogoutConfirmation() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Czy chcesz się wylogować?")
+            .setMessage("Po wylogowaniu musisz zalogować się ponownie, aby przeglądać swoje podróże.")
+            .setPositiveButton("Tak") { _, _ ->
+                auth.signOut()
+                // Przejdź do ekranu logowania (MainActivity):
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
+                finish()  // Kończymy TripsActivity, by nie można było wrócić do niej przy cofnięciu
+            }
+            .setNegativeButton("Nie") { dialog, _ ->
+                dialog.dismiss()  // Zamykamy panel, pozostajemy na ekranie listy
+            }
+            .show()
+    }
+
+
     private fun fetchTrips() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
@@ -186,7 +231,6 @@ class TripsActivity : AppCompatActivity() {
                 .addOnSuccessListener { result ->
                     tripsList.clear()
                     for (document in result) {
-                        // Pobieramy dane i kopiujemy document.id do pola tripId
                         val trip = document.toObject(Trip::class.java).copy(tripId = document.id)
                         tripsList.add(trip)
                     }

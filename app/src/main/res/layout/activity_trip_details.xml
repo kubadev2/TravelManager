@@ -1,34 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:tools="http://schemas.android.com/tools"
+<layout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <!-- Zmienne, jeśli potrzebne -->
+        <!-- Brak zmiennych do data bindingu -->
     </data>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
-        android:background="#F5F5F5">
+        android:background="?android:attr/colorBackground">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/rootLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:padding="16dp"
+            tools:context=".TripDetailsActivity">
 
-            <!-- Trip Details Card -->
+            <!-- KARTA SZCZEGÓŁÓW PODRÓŻY -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardTripDetails"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
-                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -47,106 +50,159 @@
                         android:id="@+id/tvStartDate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:text="Start Date"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                        android:layout_marginTop="4dp" />
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
 
                     <TextView
                         android:id="@+id/tvEndDate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:text="End Date"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                        android:layout_marginTop="4dp" />
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Ikona edycji wycieczki (opcjonalnie) -->
+            <!-- PRZYCISK EDYCJI WYJAZDU -->
             <ImageButton
                 android:id="@+id/btnEditTrip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="8dp"
                 android:contentDescription="@string/edit_trip_details"
                 app:srcCompat="@drawable/ic_edit"
-                app:layout_constraintTop_toTopOf="@id/cardTripDetails"
-                app:layout_constraintEnd_toEndOf="@id/cardTripDetails"
-                android:padding="8dp"/>
-
-            <!-- Sekcja biletów -->
-            <TextView
-                android:id="@+id/tvTicketTitle2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Bilety komunikacyjne"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                app:layout_constraintTop_toBottomOf="@id/cardTripDetails"
-                app:layout_constraintStart_toStartOf="parent"
-                android:layout_marginTop="16dp" />
-
-            <!-- Ikona dodawania biletu -->
-
-            <!-- TextView wyświetlający wybrany plik -->
-
-            <ImageButton
-                android:id="@+id/btnAddTicket"
-                android:layout_width="33dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="16dp"
+                app:tint="?android:attr/textColorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:layout_constraintStart_toEndOf="@id/tvTicketTitle2"
-                app:layout_constraintTop_toBottomOf="@id/cardTripDetails"
-                app:srcCompat="@drawable/ic_add" />
+                android:elevation="8dp"
+                tools:ignore="TouchTargetSizeCheck"
+                app:layout_constraintTop_toTopOf="@id/cardTripDetails"
+                app:layout_constraintEnd_toEndOf="@id/cardTripDetails" />
 
-            <!-- RecyclerView do wyświetlania biletów (miniatur) -->
-            <androidx.recyclerview.widget.RecyclerView
-                app:layout_constraintTop_toBottomOf="@id/btnAddTicket"
-                android:id="@+id/rvTickets"
-                android:layout_width="match_parent"
+            <!-- SEKCJA BILETÓW -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTickets"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                tools:layout_editor_absoluteY="218dp" />
-
-            <!-- Kontener na plany podróży (zakładki) -->
-            <FrameLayout
-                android:id="@+id/flTripPlans"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:layout_constraintTop_toBottomOf="@id/rvTickets"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="16dp"/>
-            <!-- Sekcja zdjęć -->
-            <TextView
-                android:id="@+id/tvPhotosTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Zdjęcia z wycieczki"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                app:layout_constraintTop_toBottomOf="@id/flTripPlans"
-                app:layout_constraintStart_toStartOf="parent"
-                android:layout_marginTop="16dp" />
+                app:layout_constraintTop_toBottomOf="@id/cardTripDetails">
 
-            <ImageButton
-                android:id="@+id/btnAddPhoto"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/add_photo"
-                app:srcCompat="@drawable/ic_add_photo"
-                app:layout_constraintTop_toBottomOf="@id/flTripPlans"
-                app:layout_constraintStart_toEndOf="@id/tvPhotosTitle"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="16dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvPhotos"
-                android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvTicketTitle2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Bilety komunikacyjne"
+                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <ImageButton
+                            android:id="@+id/btnAddTicket"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/add_ticket"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:layout_marginStart="8dp"
+                            app:srcCompat="@drawable/ic_add"
+                            tools:ignore="TouchTargetSizeCheck"/>
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvTickets"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- SEKCJA ZDJĘĆ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPhotos"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:layout_constraintTop_toBottomOf="@id/btnAddPhoto"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
                 app:layout_constraintStart_toStartOf="parent"
-                android:layout_marginTop="8dp"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/cardTickets">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvPhotosTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Zdjęcia"
+                            android:textStyle="bold"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <ImageButton
+                            android:id="@+id/btnAddPhoto"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/add_photo"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:layout_marginStart="8dp"
+                            app:srcCompat="@drawable/ic_add"
+                            tools:ignore="TouchTargetSizeCheck"/>
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPhotos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- SEKCJA PLANÓW DNI (ViewPager + TabLayout) -->
+            <FrameLayout
+                android:id="@+id/flTripPlans"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/cardPhotos"
+                tools:ignore="NotSibling" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 </layout>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rootLayout"
@@ -7,101 +8,81 @@
     android:layout_height="match_parent"
     tools:context=".TripsActivity">
 
+    <!-- Przycisk menu (hamburger) w prawym górnym rogu -->
+    <ImageButton
+        android:id="@+id/btnHamburger"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/menu"
+        app:srcCompat="@drawable/ic_menu"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:elevation="10dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- RecyclerView do wyświetlania wycieczek -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewTrips"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:forceHasOverlappingRendering="true"
-        android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- FloatingActionButton do dodawania wycieczek -->
-
+    <!-- Przycisk do dodawania wycieczek (plus) -->
     <ImageButton
         android:id="@+id/fabAddTrip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:background="#00FFFFFF"
         android:contentDescription="@string/add_trip"
+        app:srcCompat="@drawable/ic_add"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:elevation="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ic_add" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <ImageButton
-        android:id="@+id/btnHamburger"
+    <!-- Tytuł 'Twoje podróże' na górze ekranu -->
+    <TextView
+        android:id="@+id/tvTripsTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="#00FFFFFF"
-        android:contentDescription="@string/menu"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_menu" />
-
-    <TextView
-        android:id="@+id/tvEmail"
-        android:layout_width="250dp"
-        android:layout_height="0dp"
-        android:background="#5C00FF"
-        android:padding="16dp"
-        android:text="email@example.com"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="MissingConstraints" />
-
-    <!-- Przycisk Wyloguj się -->
-    <TextView
-        android:id="@+id/btnLogout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:padding="16dp"
-        android:text="Wyloguj się"
-        android:textColor="#FF0000"
-        android:textSize="16sp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.869"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <View
-        android:id="@+id/menuClose"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:background="#80000000"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/tvEmail"
+        android:text="Twoje podróże"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- KARTA z listą wycieczek (pod spodem) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardTripsList"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp"
+        app:layout_constraintTop_toBottomOf="@+id/tvTripsTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- RecyclerView do wyświetlania wycieczek -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewTrips"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:forceHasOverlappingRendering="true"
+            android:padding="8dp"
+            tools:listitem="@layout/item_trip" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Sekcja formularza dodawania nowej wycieczki -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/addTripForm"
         android:layout_width="match_parent"
         android:layout_height="407dp"
         android:background="#FFFFFF"
-        android:visibility="visible"
         android:elevation="10dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:visibility="visible"
         app:layout_constraintHeight_percent="0.5"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="0dp">
-
-
-        <!-- Pole Miejsce Wyjazdu -->
-
-        <!-- Pole Okres Wyjazdu -->
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:ignore="MissingConstraints">
 
         <EditText
             android:id="@+id/etTripDates2"
@@ -145,8 +126,7 @@
             android:layout_marginBottom="28dp"
             android:text="Zapisz"
             app:layout_constraintBottom_toBottomOf="parent"
-            tools:ignore="MissingConstraints"
-            tools:layout_editor_absoluteX="2dp" />
+            tools:ignore="MissingConstraints" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline"
@@ -158,13 +138,57 @@
 
     <View
         android:id="@+id/addTripClose"
-        android:layout_width="412dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:background="#59333333"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/addTripForm"
-        app:layout_constraintHeight_percent="0.5"
+        app:layout_constraintBottom_toTopOf="@id/addTripForm"
+        app:layout_constraintHeight_percent="0.5" />
+
+    <!-- Teraz elementy menu umieszczamy na końcu z wysokim elevation -->
+    <TextView
+        android:id="@+id/tvEmail"
+        android:layout_width="250dp"
+        android:layout_height="0dp"
+        android:background="#5C00FF"
+        android:padding="16dp"
+        android:text="email@example.com"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:elevation="20dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         tools:ignore="MissingConstraints" />
 
+    <TextView
+        android:id="@+id/btnLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        android:text="Wyloguj się"
+        android:textColor="#FF0000"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:elevation="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.869"
+        app:layout_constraintStart_toStartOf="parent" />
 
+    <View
+        android:id="@+id/menuClose"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:elevation="20dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvEmail" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,18 +2,15 @@
 <layout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <data>
-        <!-- Jeśli potrzebujesz zmiennych -->
+        <!-- Zmienne, jeśli potrzebne -->
     </data>
-
     <androidx.cardview.widget.CardView
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_margin="8dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="4dp">
-
         <ImageView
             android:id="@+id/imageViewPhoto"
             android:layout_width="match_parent"
