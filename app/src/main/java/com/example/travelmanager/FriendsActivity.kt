@@ -2,6 +2,7 @@ package com.example.travelmanager
 
 import android.os.Bundle
 import android.text.InputType
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -44,33 +45,34 @@ class FriendsActivity : AppCompatActivity() {
     private fun fetchFriends() {
         val currentUser = auth.currentUser
         currentUser?.let { user ->
-            db.collection("users").document(user.uid).get()
+            db.collection("users").document(user.email!!).get()
                 .addOnSuccessListener { document ->
                     val userData = document.toObject(User::class.java)
-                    val friendIds = userData?.friends ?: listOf()
-                    loadFriends(friendIds)
+                    val friendEmails = userData?.friends ?: listOf()
+                    loadFriends(friendEmails)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FriendsActivity", "Błąd pobierania danych użytkownika", e)
                 }
         }
     }
 
-    private fun loadFriends(friendIds: List<String>) {
-        friendsList.clear()
-        if (friendIds.isEmpty()) {
-            friendAdapter.notifyDataSetChanged()
-            return
-        }
 
-        for (friendId in friendIds) {
-            db.collection("users").document(friendId).get()
+    private fun loadFriends(friendEmails: List<String>) {
+        friendsList.clear()
+        for (friendEmail in friendEmails) {
+            db.collection("users").document(friendEmail).get()
                 .addOnSuccessListener { document ->
                     val friend = document.toObject(User::class.java)
-                    friend?.let {
-                        friendsList.add(it)
-                        friendAdapter.notifyDataSetChanged()
-                    }
+                    friend?.let { friendsList.add(it) }
+                    friendAdapter.notifyDataSetChanged()
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FriendsActivity", "Błąd pobierania znajomego", e)
                 }
         }
     }
+
 
     private fun showAddFriendDialog() {
         val builder = AlertDialog.Builder(this)
@@ -90,25 +92,32 @@ class FriendsActivity : AppCompatActivity() {
     }
 
     private fun addFriendByEmail(email: String) {
-        db.collection("users").whereEqualTo("email", email).get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    Toast.makeText(this, "Użytkownik nie znaleziony", Toast.LENGTH_SHORT).show()
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(this, "Brak zalogowanego użytkownika", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        db.collection("users").document(email).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    db.collection("users").document(currentUser.email!!)
+                        .update("friends", FieldValue.arrayUnion(email))
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Dodano znajomego", Toast.LENGTH_SHORT).show()
+                            fetchFriends()
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("FriendsActivity", "Błąd dodawania znajomego", e)
+                            Toast.makeText(this, "Błąd dodawania znajomego", Toast.LENGTH_SHORT).show()
+                        }
                 } else {
-                    val friend = documents.first().toObject(User::class.java)
-                    val currentUser = auth.currentUser
-                    currentUser?.let { user ->
-                        db.collection("users").document(user.uid)
-                            .update("friends", FieldValue.arrayUnion(friend.uid))
-                            .addOnSuccessListener {
-                                Toast.makeText(this, "Dodano znajomego", Toast.LENGTH_SHORT).show()
-                                fetchFriends()
-                            }
-                    }
+                    Toast.makeText(this, "Użytkownik o takim emailu nie istnieje", Toast.LENGTH_SHORT).show()
                 }
             }
-            .addOnFailureListener {
-                Toast.makeText(this, "Wystąpił błąd", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener { e ->
+                Log.e("FriendsActivity", "Błąd wyszukiwania użytkownika", e)
             }
     }
+
 }

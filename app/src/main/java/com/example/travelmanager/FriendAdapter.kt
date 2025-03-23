@@ -1,11 +1,12 @@
 package com.example.travelmanager
 
 import android.content.Context
-import android.widget.Button
-import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -14,7 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 class FriendAdapter(
     private val context: Context,
     private val friendsList: MutableList<User>,
-    private val onFriendRemoved: () -> Unit // callback do odświeżenia po usunięciu
+    private val onFriendRemoved: () -> Unit
 ) : RecyclerView.Adapter<FriendAdapter.FriendViewHolder>() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -35,7 +36,7 @@ class FriendAdapter(
         holder.friendEmail.text = friend.email
 
         holder.removeFriendButton.setOnClickListener {
-            removeFriend(friend.uid)
+            removeFriend(friend.email)  // ← tutaj użyj email zamiast uid
         }
     }
 
@@ -43,15 +44,18 @@ class FriendAdapter(
         return friendsList.size
     }
 
-    private fun removeFriend(friendId: String) {
+    private fun removeFriend(friendEmail: String) {
         val currentUser = auth.currentUser
         currentUser?.let { user ->
-            db.collection("users").document(user.uid)
-                .update("friends", FieldValue.arrayRemove(friendId))
+            db.collection("users").document(user.email!!)
+                .update("friends", FieldValue.arrayRemove(friendEmail))
                 .addOnSuccessListener {
-                    friendsList.removeAll { it.uid == friendId }
+                    friendsList.removeAll { it.email == friendEmail }
                     notifyDataSetChanged()
                     onFriendRemoved()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Błąd usuwania znajomego", Toast.LENGTH_SHORT).show()
                 }
         }
     }

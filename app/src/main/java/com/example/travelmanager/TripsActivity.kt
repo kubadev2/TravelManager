@@ -88,8 +88,46 @@ class TripsActivity : AppCompatActivity() {
 
         val btnSaveTrip = findViewById<View>(R.id.btnSaveTrip)
         btnSaveTrip.setOnClickListener {
-            // Twój kod do zapisania wycieczki
+            val etName = findViewById<EditText>(R.id.etDeparturePlace)
+            val etDeparture = findViewById<EditText>(R.id.etDeparturePlace)
+            val etStartDate = findViewById<EditText>(R.id.etTripDates)
+            val etEndDate = findViewById<EditText>(R.id.etTripDates2)
+
+            val name = etName.text.toString().trim()
+            val departure = etDeparture.text.toString().trim()
+            val startDate = etStartDate.text.toString().trim()
+            val endDate = etEndDate.text.toString().trim()
+
+            if (name.isEmpty() || departure.isEmpty() || startDate.isEmpty() || endDate.isEmpty()) {
+                Toast.makeText(this, "Wypełnij wszystkie pola", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                val trip = hashMapOf(
+                    "name" to name,
+                    "departurePlace" to departure,
+                    "startDate" to startDate,
+                    "endDate" to endDate,
+                    "userId" to currentUser.uid,
+                    "companions" to emptyList<String>()
+                )
+
+                db.collection("trips")
+                    .add(trip)
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Wycieczka zapisana", Toast.LENGTH_SHORT).show()
+                        fetchTrips()
+                        hideAddTripForm()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Błąd zapisu: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+            }
         }
+
+
 
         btnHamburger.setOnClickListener {
             if (tvEmail.visibility == View.GONE) {

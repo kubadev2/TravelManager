@@ -7,14 +7,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
-import com.example.travelmanager.R
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,14 +25,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Inicjalizacja Firebase
         firebaseAuth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
 
-        // Pobieramy client ID z strings.xml
         val clientId = getString(R.string.default_web_client_id)
 
-        // Konfiguracja Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
@@ -43,7 +38,6 @@ class MainActivity : AppCompatActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Obsługa kliknięcia przycisku logowania
         findViewById<com.google.android.gms.common.SignInButton>(R.id.sign_in_button).setOnClickListener {
             signIn()
         }
@@ -90,37 +84,60 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveUserToFirestore(account: GoogleSignInAccount) {
-        val email = account.email
-        if (email.isNullOrEmpty()) {
-            Log.e("MainActivity", "Błąd: Adres e-mail użytkownika jest pusty.")
-            Toast.makeText(this, "Błąd: Adres e-mail użytkownika jest pusty.", Toast.LENGTH_SHORT).show()
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser == null) {
+            Log.e("MainActivity", "Brak zalogowanego użytkownika Firebase.")
             return
         }
 
-        val user = mapOf(
-            "name" to (account.displayName ?: "Nieznane imię"),
-            "email" to email,
-            "photoUrl" to (account.photoUrl?.toString() ?: "")
-        )
+        val userDoc = firestore.collection("users").document(currentUser.uid)
 
-        firestore.collection("users")
-            .document(email)
-            .set(user)
-            .addOnSuccessListener {
-                Log.d("MainActivity", "Użytkownik zapisany w Firestore.")
-                Toast.makeText(this, "Logowanie powiodło się!", Toast.LENGTH_SHORT).show()
+        userDoc.get().addOnSuccessListener { document ->
+            if (!document.exists()) {
+                // Tworzymy użytkownika z listą znajomych
+                val userData = mapOf(
+                    "name" to (account.displayName ?: "Nieznane imię"),
+                    "email" to account.email,
+                    "photoUrl" to (account.photoUrl?.toString() ?: ""),
+                    "friends" to listOf<String>()
+                )
 
-                // Przejdź do TripsActivity
-                val intent = Intent(this, TripsActivity::class.java).apply {
-                    putExtra("userName", account.displayName)
-                    putExtra("userEmail", email)
-                }
-                startActivity(intent)
-                finish()
+                userDoc.set(userData)
+                    .addOnSuccessListener {
+                        Log.d("MainActivity", "Nowy użytkownik zapisany w Firestore.")
+                        navigateToTripsActivity(account)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("MainActivity", "Błąd zapisu użytkownika", e)
+                        Toast.makeText(this, "Błąd zapisu użytkownika: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+            } else {
+                // Aktualizacja danych istniejącego użytkownika (opcjonalnie)
+                val updates = mapOf(
+                    "name" to (account.displayName ?: "Nieznane imię"),
+                    "photoUrl" to (account.photoUrl?.toString() ?: "")
+                )
+                userDoc.update(updates)
+                    .addOnSuccessListener {
+                        Log.d("MainActivity", "Użytkownik zaktualizowany w Firestore.")
+                        navigateToTripsActivity(account)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("MainActivity", "Błąd aktualizacji użytkownika", e)
+                        Toast.makeText(this, "Błąd aktualizacji użytkownika: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
             }
-            .addOnFailureListener { e ->
-                Log.e("MainActivity", "Błąd zapisu użytkownika w Firestore", e)
-                Toast.makeText(this, "Błąd zapisu użytkownika: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-            }
+        }
+    }
+
+    private fun navigateToTripsActivity(account: GoogleSignInAccount) {
+        Toast.makeText(this, "Logowanie powiodło się!", Toast.LENGTH_SHORT).show()
+
+        val intent = Intent(this, TripsActivity::class.java).apply {
+            putExtra("userName", account.displayName)
+            putExtra("userEmail", account.email)
+        }
+        startActivity(intent)
+        finish()
     }
 }

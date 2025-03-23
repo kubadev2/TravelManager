@@ -9,4 +9,5 @@
     <string name="add_photo">Dodaj zdjęcie</string>
     <string name="photo_desc">Zdjęcie z wycieczki</string>
     <string name="add_ticket">Dodaj bilet</string>
+    <string name="add_companion">Dodaj towarzysza podróży</string>
 </resources>
