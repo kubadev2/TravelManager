@@ -35,6 +35,9 @@ class TripsActivity : AppCompatActivity() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private lateinit var etTripDates: EditText
     private val tripsList = mutableListOf<Trip>()
+    private lateinit var btnFriends: TextView
+    private lateinit var menuClose: View
+
 
     override fun onStart() {
         super.onStart()
@@ -70,76 +73,50 @@ class TripsActivity : AppCompatActivity() {
             hideAddTripForm()
         }
 
-        val btnSaveTrip = findViewById<View>(R.id.btnSaveTrip)
-        btnSaveTrip.setOnClickListener {
-            val departurePlace = findViewById<EditText>(R.id.etDeparturePlace).text.toString()
-            val startDate = findViewById<EditText>(R.id.etTripDates).text.toString()
-            val endDate = findViewById<EditText>(R.id.etTripDates2).text.toString()
-            val currentUser = auth.currentUser
-
-            if (currentUser != null && departurePlace.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                try {
-                    val parsedStart = dateFormat.parse(startDate)
-                    val parsedEnd = dateFormat.parse(endDate)
-                    if (parsedStart != null && parsedEnd != null && parsedStart.after(parsedEnd)) {
-                        Toast.makeText(this, "Data rozpoczęcia nie może być późniejsza niż data zakończenia", Toast.LENGTH_SHORT).show()
-                        return@setOnClickListener
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Proszę wprowadzić daty w formacie dd/MM/yyyy", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                val tripData = mapOf(
-                    "userId" to currentUser.uid,
-                    "departurePlace" to departurePlace,
-                    "startDate" to startDate,
-                    "endDate" to endDate
-                )
-
-                db.collection("trips")
-                    .add(tripData)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Wycieczka zapisana pomyślnie", Toast.LENGTH_SHORT).show()
-                        hideAddTripForm()
-                        fetchTrips()
-                    }
-                    .addOnFailureListener { exception ->
-                        Toast.makeText(this, "Błąd zapisu: $exception", Toast.LENGTH_SHORT).show()
-                    }
-            } else {
-                Toast.makeText(this, "Proszę wypełnić wszystkie pola lub zalogować się", Toast.LENGTH_SHORT).show()
-            }
-        }
-
+        btnHamburger = findViewById(R.id.btnHamburger)
         fabAddTrip = findViewById(R.id.fabAddTrip)
+        tvEmail = findViewById(R.id.tvEmail)
+        btnLogout = findViewById(R.id.btnLogout)
+        btnFriends = findViewById(R.id.btnFriends)
+        menuClose = findViewById(R.id.menuClose)
+
         fabAddTrip.setOnClickListener {
             addTripForm.visibility = View.VISIBLE
             addTripClose.visibility = View.VISIBLE
             fabAddTrip.visibility = View.GONE
         }
 
-        btnHamburger = findViewById(R.id.btnHamburger)
-        tvEmail = findViewById(R.id.tvEmail)
-        btnLogout = findViewById(R.id.btnLogout)
-        val menuClose = findViewById<View>(R.id.menuClose)
+        val btnSaveTrip = findViewById<View>(R.id.btnSaveTrip)
+        btnSaveTrip.setOnClickListener {
+            // Twój kod do zapisania wycieczki
+        }
 
         btnHamburger.setOnClickListener {
             if (tvEmail.visibility == View.GONE) {
                 tvEmail.visibility = View.VISIBLE
                 btnLogout.visibility = View.VISIBLE
+                btnFriends.visibility = View.VISIBLE
                 menuClose.visibility = View.VISIBLE
             } else {
                 tvEmail.visibility = View.GONE
                 btnLogout.visibility = View.GONE
+                btnFriends.visibility = View.GONE
                 menuClose.visibility = View.GONE
             }
+        }
+
+        btnFriends.setOnClickListener {
+            startActivity(Intent(this, FriendsActivity::class.java))
+            tvEmail.visibility = View.GONE
+            btnLogout.visibility = View.GONE
+            btnFriends.visibility = View.GONE
+            menuClose.visibility = View.GONE
         }
 
         val rootLayout = findViewById<ConstraintLayout>(R.id.rootLayout)
         rootLayout.setOnClickListener {
             tvEmail.visibility = View.GONE
+            btnFriends.visibility = View.GONE
             btnLogout.visibility = View.GONE
             menuClose.visibility = View.GONE
         }
@@ -153,35 +130,34 @@ class TripsActivity : AppCompatActivity() {
         menuClose.setOnClickListener {
             tvEmail.visibility = View.GONE
             btnLogout.visibility = View.GONE
+            btnFriends.visibility = View.GONE
             menuClose.visibility = View.GONE
         }
 
         etTripDates = findViewById(R.id.etTripDates2)
         etTripDates.setOnClickListener { showDateRangePicker() }
 
-        // Obsługa wstecznego – chowamy formularz, chowamy menu albo pokazujemy panel wylogowania
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // 1. Jeśli formularz jest otwarty, chowamy go
                 if (addTripForm.visibility == View.VISIBLE) {
                     hideAddTripForm()
-                }
-                // 2. Jeśli menu jest widoczne, chowamy menu
-                else if (tvEmail.visibility == View.VISIBLE
+                } else if (tvEmail.visibility == View.VISIBLE
                     && btnLogout.visibility == View.VISIBLE
+                    && btnFriends.visibility == View.VISIBLE
                     && menuClose.visibility == View.VISIBLE
                 ) {
                     tvEmail.visibility = View.GONE
                     btnLogout.visibility = View.GONE
+                    btnFriends.visibility = View.GONE
                     menuClose.visibility = View.GONE
-                }
-                // 3. W przeciwnym wypadku pytamy o wylogowanie (dialog potwierdzenia)
-                else {
+                } else {
                     showLogoutConfirmation()
                 }
             }
         })
     }
+
+
 
     private fun hideAddTripForm() {
         addTripForm.visibility = View.GONE

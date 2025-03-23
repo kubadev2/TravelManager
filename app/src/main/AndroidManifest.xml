@@ -39,6 +39,8 @@
         <activity
             android:name=".FullScreenPhotosActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"/>
+        <activity android:name=".FriendsActivity" />
+
     </application>
 
 </manifest>
