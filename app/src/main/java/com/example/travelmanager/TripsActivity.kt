@@ -237,24 +237,40 @@ class TripsActivity : AppCompatActivity() {
 
 
     private fun fetchTrips() {
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            db.collection("trips")
-                .whereEqualTo("userId", currentUser.uid)
-                .get()
-                .addOnSuccessListener { result ->
-                    tripsList.clear()
-                    for (document in result) {
-                        val trip = document.toObject(Trip::class.java).copy(tripId = document.id)
-                        tripsList.add(trip)
+        val currentUser = auth.currentUser ?: return
+
+        tripsList.clear()
+
+        // Pobierz wycieczki, które użytkownik utworzył
+        db.collection("trips")
+            .whereEqualTo("userId", currentUser.uid)
+            .get()
+            .addOnSuccessListener { ownedTrips ->
+                for (doc in ownedTrips) {
+                    val trip = doc.toObject(Trip::class.java).copy(tripId = doc.id, isGuest = false)
+                    tripsList.add(trip)
+                }
+
+                // Pobierz wycieczki, gdzie użytkownik jest towarzyszem
+                db.collection("trips")
+                    .whereArrayContains("companions", currentUser.email ?: "")
+                    .get()
+                    .addOnSuccessListener { guestTrips ->
+                        for (doc in guestTrips) {
+                            val tripId = doc.id
+                            val alreadyAdded = tripsList.any { it.tripId == tripId }
+                            if (!alreadyAdded) {
+                                val trip = doc.toObject(Trip::class.java).copy(tripId = tripId, isGuest = true)
+                                tripsList.add(trip)
+                            }
+                        }
+
+                        tripAdapter.notifyDataSetChanged()
                     }
-                    tripAdapter.notifyDataSetChanged()
-                }
-                .addOnFailureListener { exception ->
-                    Toast.makeText(this, "Błąd pobierania danych: $exception", Toast.LENGTH_SHORT).show()
-                }
-        } else {
-            Toast.makeText(this, "Zaloguj się, aby zobaczyć swoje wycieczki", Toast.LENGTH_SHORT).show()
-        }
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Błąd pobierania wycieczek", Toast.LENGTH_SHORT).show()
+            }
     }
+
 }

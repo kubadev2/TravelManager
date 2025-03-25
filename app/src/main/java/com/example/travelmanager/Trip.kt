@@ -8,7 +8,9 @@ data class Trip(
     val userId: String = "",
     val departurePlace: String = "",
     val startDate: String = "",
-    val endDate: String = "" // Dodano pole endDate
+    val endDate: String = "", // Dodano pole endDate
+    var isGuest: Boolean = false
+
 )
 
 

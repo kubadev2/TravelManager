@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -90,18 +91,18 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val userDoc = firestore.collection("users").document(currentUser.uid)
+        val userDoc = firestore.collection("users").document(account.email ?: currentUser.uid)
 
         userDoc.get().addOnSuccessListener { document ->
-            if (!document.exists()) {
-                // Tworzymy użytkownika z listą znajomych
-                val userData = mapOf(
-                    "name" to (account.displayName ?: "Nieznane imię"),
-                    "email" to account.email,
-                    "photoUrl" to (account.photoUrl?.toString() ?: ""),
-                    "friends" to listOf<String>()
-                )
+            val userData = mapOf(
+                "name" to (account.displayName ?: "Nieznane imię"),
+                "email" to account.email,
+                "photoUrl" to (account.photoUrl?.toString() ?: ""),
+                "userId" to currentUser.uid, // <- DODAJ TO!
+                "friends" to listOf<String>()
+            )
 
+            if (!document.exists()) {
                 userDoc.set(userData)
                     .addOnSuccessListener {
                         Log.d("MainActivity", "Nowy użytkownik zapisany w Firestore.")
@@ -112,12 +113,8 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this, "Błąd zapisu użytkownika: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
             } else {
-                // Aktualizacja danych istniejącego użytkownika (opcjonalnie)
-                val updates = mapOf(
-                    "name" to (account.displayName ?: "Nieznane imię"),
-                    "photoUrl" to (account.photoUrl?.toString() ?: "")
-                )
-                userDoc.update(updates)
+                // Aktualizacja pól (w tym dodanie userId jeśli go brakowało)
+                userDoc.update(userData)
                     .addOnSuccessListener {
                         Log.d("MainActivity", "Użytkownik zaktualizowany w Firestore.")
                         navigateToTripsActivity(account)
@@ -129,6 +126,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
 
     private fun navigateToTripsActivity(account: GoogleSignInAccount) {
         Toast.makeText(this, "Logowanie powiodło się!", Toast.LENGTH_SHORT).show()

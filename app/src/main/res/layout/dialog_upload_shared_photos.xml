@@ -1,7 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CheckBox xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/cbConfirmSharedUpload"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="24dp"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Rozumiem, że zdjęcia będą widoczne dla wszystkich"
-    android:padding="16dp" />
+    android:layout_height="wrap_content">
+
+    <CheckBox
+        android:id="@+id/cbTransportTickets"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bilety komunikacyjne" />
+
+    <CheckBox
+        android:id="@+id/cbPhotos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zdjęcia" />
+
+    <CheckBox
+        android:id="@+id/cbPlanTickets"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bilety z planu dnia" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="16dp" />
+
+    <CheckBox
+        android:id="@+id/cbConfirmSharedUpload"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rozumiem, że przesłane pliki będą widoczne dla wszystkich uczestników" />
+</LinearLayout>

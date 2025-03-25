@@ -17,14 +17,19 @@ class TripAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(trip: Trip) {
-            binding.trip = trip
-            binding.executePendingBindings() // Aktualizacja danych
+            val displayName = if (trip.isGuest) {
+                "${trip.departurePlace} (jesteś gościem)"
+            } else {
+                trip.departurePlace
+            }
 
-            // Kliknięcie w element listy – przejście do szczegółów
+            binding.tvTripName.text = displayName
+            binding.tvTripDate.text = "${trip.startDate} - ${trip.endDate}"
+
             binding.root.setOnClickListener {
                 if (trip.tripId.isNotEmpty()) {
                     val intent = Intent(context, TripDetailsActivity::class.java)
-                    intent.putExtra("tripId", trip.tripId) // Przekazujemy tripId
+                    intent.putExtra("tripId", trip.tripId)
                     context.startActivity(intent)
                 }
             }
@@ -43,3 +48,4 @@ class TripAdapter(
 
     override fun getItemCount(): Int = trips.size
 }
+

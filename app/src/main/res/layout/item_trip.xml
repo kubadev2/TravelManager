@@ -24,15 +24,14 @@
                 android:id="@+id/tvTripName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@{trip.departurePlace}"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
 
             <TextView
                 android:id="@+id/tvTripDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@{trip.startDate}"
                 android:textSize="14sp" />
 
         </LinearLayout>

@@ -146,9 +146,12 @@ class PlanDayFragment : Fragment() {
     }
 
     private fun loadDayTickets() {
+        val currentUserId = auth.currentUser?.uid ?: return
+
         db.collection("tickets")
             .whereEqualTo("tripId", tripId)
             .whereEqualTo("dayNumber", dayNumber)
+            .whereEqualTo("userId", currentUserId)  // <-- tylko bilety zalogowanego użytkownika
             .get()
             .addOnSuccessListener { result ->
                 val tickets = mutableListOf<Ticket>()
@@ -156,7 +159,7 @@ class PlanDayFragment : Fragment() {
                     val fileUrl = document.getString("fileUrl") ?: ""
                     val ticketId = document.id
                     if (fileUrl.isNotEmpty()) {
-                        tickets.add(Ticket(ticketId, fileUrl, tripId, auth.currentUser?.uid ?: ""))
+                        tickets.add(Ticket(ticketId, fileUrl, tripId, currentUserId))
                     }
                 }
                 binding.rvDayTickets.layoutManager =
@@ -172,6 +175,7 @@ class PlanDayFragment : Fragment() {
                 })
             }
     }
+
 
     private fun deleteTicket(ticket: Ticket) {
         db.collection("tickets")

@@ -2,6 +2,7 @@ package com.example.travelmanager
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ContentValues.TAG
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -33,6 +34,7 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.Permission
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -52,6 +54,9 @@ class TripDetailsActivity : AppCompatActivity() {
     private val RC_AUTHORIZATION = 401
     private var driveService: Drive? = null
     private val PICK_SHARED_PHOTOS_REQUEST_CODE = 1003
+    private var isCurrentUserOwner: Boolean = false
+    private var tripOwnerEmail: String? = null
+
 
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -243,6 +248,7 @@ class TripDetailsActivity : AppCompatActivity() {
         }
 
         if (tripId.isNotEmpty()) {
+            checkIfUserIsOwner()
             fetchTripDetails(tripId)
             fetchTicketsForTrip()
             fetchPhotosForTrip()
@@ -349,6 +355,201 @@ class TripDetailsActivity : AppCompatActivity() {
             createSharedFolderOnDrive()
         }
     }
+    private fun checkIfUserIsOwner() {
+        val currentUser = auth.currentUser ?: return
+        db.collection("trips").document(tripId).get()
+            .addOnSuccessListener { document ->
+                val ownerId = document.getString("userId")
+                val ownerEmail = document.getString("userEmail") // <-- dodaj to pole w dokumencie trips
+                tripOwnerEmail = ownerEmail
+                isCurrentUserOwner = currentUser.uid == ownerId
+                setupVisibilityBasedOnRole(isCurrentUserOwner)
+                fetchCompanions()
+            }
+    }
+
+    private fun setupVisibilityBasedOnRole(isOwner: Boolean) {
+        if (!isOwner) {
+            // Ukryj przyciski właściciela, ale NIE ukrywaj przycisków do dodawania zdjęć i biletów
+            binding.btnAddCompanion.visibility = View.GONE
+            binding.btnEditTrip.visibility = View.GONE
+            binding.btnCreateSharedFolder.visibility = View.GONE
+
+            // Pokaż przyciski do dodawania zdjęć i biletów, jeśli gość ma mieć taką możliwość
+            binding.btnAddTicket.visibility = View.VISIBLE
+            binding.btnAddPhoto.visibility = View.VISIBLE
+
+        } else {
+        }
+    }
+
+    private fun showUploadSharedPhotosDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_upload_shared_photos, null)
+        val cbTransportTickets = dialogView.findViewById<CheckBox>(R.id.cbTransportTickets)
+        val cbPhotos = dialogView.findViewById<CheckBox>(R.id.cbPhotos)
+        val cbPlanTickets = dialogView.findViewById<CheckBox>(R.id.cbPlanTickets)
+        val cbConfirm = dialogView.findViewById<CheckBox>(R.id.cbConfirmSharedUpload)
+
+        AlertDialog.Builder(this)
+            .setTitle("Prześlij dane")
+            .setView(dialogView)
+            .setPositiveButton("Prześlij") { _, _ ->
+                val selectedItems = mutableListOf<String>()
+                if (cbTransportTickets.isChecked) selectedItems.add("transport")
+                if (cbPhotos.isChecked) selectedItems.add("photos")
+                if (cbPlanTickets.isChecked) selectedItems.add("plans")
+
+                if (!cbConfirm.isChecked) {
+                    Toast.makeText(this, "Musisz potwierdzić widoczność danych", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                if (selectedItems.isEmpty()) {
+                    Toast.makeText(this, "Wybierz co chcesz przesłać", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                uploadSelectedDataToDrive(selectedItems)
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
+    }
+
+    private fun uploadSelectedDataToDrive(selectedItems: List<String>) {
+        if ("photos" in selectedItems) {
+            uploadAllLocalPhotosToDrive()
+        }
+        if ("transport" in selectedItems) {
+            uploadTransportTicketsToDrive()
+        }
+        if ("plans" in selectedItems) {
+            uploadPlanTicketsToDrive()
+        }
+    }
+    private fun uploadTransportTicketsToDrive() {
+        val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
+        val credential = GoogleAccountCredential.usingOAuth2(this, listOf(DriveScopes.DRIVE_FILE))
+        credential.selectedAccount = account.account
+        val drive = Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
+            .setApplicationName("TravelManager").build()
+
+        db.collection("trips").document(tripId).get().addOnSuccessListener { doc ->
+            val tripFolderId = doc.getString("sharedFolderId") ?: return@addOnSuccessListener
+
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val biletyFolderId = createOrGetSubfolder(drive, tripFolderId, "Bilety")
+
+                    val ticketsSnapshot = db.collection("tickets")
+                        .whereEqualTo("tripId", tripId)
+                        .whereEqualTo("userId", auth.currentUser?.uid)
+                        .get()
+                        .await()
+
+                    for (ticketDoc in ticketsSnapshot.documents) {
+                        val fileUrl = ticketDoc.getString("fileUrl") ?: continue
+                        val uri = Uri.parse(fileUrl)
+                        val inputStream = contentResolver.openInputStream(uri) ?: continue
+                        val fileName = "transport_ticket_${System.currentTimeMillis()}.pdf"
+
+                        val fileMetadata = com.google.api.services.drive.model.File().apply {
+                            name = fileName
+                            parents = listOf(biletyFolderId)
+                        }
+
+                        val mediaContent = com.google.api.client.http.InputStreamContent(
+                            "application/pdf", inputStream
+                        )
+
+                        drive.files().create(fileMetadata, mediaContent).execute()
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TripDetailsActivity, "Bilety komunikacyjne przesłane", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Log.e("UploadTransportTickets", "Błąd: ${e.localizedMessage}", e)
+                }
+            }
+        }
+    }
+    private fun uploadPlanTicketsToDrive() {
+        val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
+        val credential = GoogleAccountCredential.usingOAuth2(this, listOf(DriveScopes.DRIVE_FILE))
+        credential.selectedAccount = account.account
+        val drive = Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
+            .setApplicationName("TravelManager").build()
+
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        db.collection("trips").document(tripId).get().addOnSuccessListener { doc ->
+            val tripFolderId = doc.getString("sharedFolderId") ?: return@addOnSuccessListener
+
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val biletyFolderId = createOrGetSubfolder(drive, tripFolderId, "Bilety")
+
+                    val ticketsSnapshot = db.collection("tickets")
+                        .whereEqualTo("tripId", tripId)
+                        .whereEqualTo("userId", currentUserId)
+                        .get()
+                        .await()
+
+                    for (ticketDoc in ticketsSnapshot.documents) {
+                        val dayNumber = ticketDoc.getLong("dayNumber") ?: continue // tylko planowe bilety
+                        if (dayNumber <= 0) continue
+
+                        val fileUrl = ticketDoc.getString("fileUrl") ?: continue
+                        val uri = Uri.parse(fileUrl)
+                        val inputStream = contentResolver.openInputStream(uri) ?: continue
+                        val fileName = "plan_ticket_${System.currentTimeMillis()}.pdf"
+
+                        val fileMetadata = com.google.api.services.drive.model.File().apply {
+                            name = fileName
+                            parents = listOf(biletyFolderId)
+                        }
+
+                        val mediaContent = com.google.api.client.http.InputStreamContent(
+                            "application/pdf", inputStream
+                        )
+
+                        drive.files().create(fileMetadata, mediaContent).execute()
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TripDetailsActivity, "Bilety z planu dnia przesłane", Toast.LENGTH_SHORT).show()
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("UploadPlanTickets", "Błąd: ${e.localizedMessage}", e)
+                }
+            }
+        }
+    }
+
+
+    private fun createOrGetSubfolder(drive: Drive, parentId: String, folderName: String): String {
+        val result = drive.files().list()
+            .setQ("mimeType='application/vnd.google-apps.folder' and '$parentId' in parents and name='$folderName'")
+            .setFields("files(id, name)")
+            .execute()
+
+        val folder = result.files?.firstOrNull()
+        if (folder != null) return folder.id
+
+        val metadata = com.google.api.services.drive.model.File().apply {
+            name = folderName
+            mimeType = "application/vnd.google-apps.folder"
+            parents = listOf(parentId)
+        }
+
+        return drive.files().create(metadata).setFields("id").execute().id
+    }
+
+
+
+
+
 
 
     private fun uploadAllLocalPhotosToDrive() {
@@ -366,34 +567,56 @@ class TripDetailsActivity : AppCompatActivity() {
                 .whereEqualTo("tripId", tripId)
                 .get()
                 .addOnSuccessListener { result ->
-                    val photoPaths = result.mapNotNull { it.getString("photoUrl") }
+
+                    val localPhotoPaths = result.mapNotNull { it.getString("photoUrl") }
 
                     lifecycleScope.launch(Dispatchers.IO) {
-                        for (path in photoPaths) {
-                            val file = File(path)
-                            if (!file.exists()) continue
+                        try {
+                            // Pobierz listę nazw plików z Dysku
+                            val existingDriveFileNames = drive.files().list()
+                                .setQ("'$folderId' in parents")
+                                .setFields("files(name)")
+                                .execute()
+                                .files
+                                .mapNotNull { it.name }
 
-                            try {
-                                val fileMetadata = com.google.api.services.drive.model.File().apply {
-                                    name = file.name
-                                    parents = listOf(folderId)
+                            for (localPath in localPhotoPaths) {
+                                val file = File(localPath)
+                                if (!file.exists()) continue
+
+                                if (file.name in existingDriveFileNames) {
+                                    Log.d("UploadPhotos", "Pomijam ${file.name}, już istnieje.")
+                                    continue
                                 }
-                                val mediaContent = com.google.api.client.http.FileContent("image/jpeg", file)
-                                drive.files().create(fileMetadata, mediaContent)
-                                    .setFields("id")
-                                    .execute()
-                            } catch (e: Exception) {
-                                Log.e("UploadAllLocalPhotos", "Błąd uploadu: ${e.localizedMessage}")
-                            }
-                        }
 
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@TripDetailsActivity, "Zdjęcia przesłane na Dysk", Toast.LENGTH_SHORT).show()
+                                try {
+                                    val fileMetadata = com.google.api.services.drive.model.File().apply {
+                                        name = file.name
+                                        parents = listOf(folderId)
+                                    }
+                                    val mediaContent = com.google.api.client.http.FileContent("image/jpeg", file)
+                                    drive.files().create(fileMetadata, mediaContent)
+                                        .setFields("id")
+                                        .execute()
+                                } catch (e: Exception) {
+                                    Log.e("UploadPhotos", "Błąd uploadu: ${e.localizedMessage}")
+                                }
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@TripDetailsActivity, "Nowe zdjęcia przesłane na Dysk", Toast.LENGTH_SHORT).show()
+                            }
+
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@TripDetailsActivity, "Błąd pobierania plików z Dysku", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
         }
     }
+
 
     private fun selectPhotosToUploadToDrive() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -404,24 +627,6 @@ class TripDetailsActivity : AppCompatActivity() {
         startActivityForResult(intent, PICK_SHARED_PHOTOS_REQUEST_CODE)
     }
 
-    private fun showUploadSharedPhotosDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_upload_shared_photos, null)
-        val checkbox = dialogView.findViewById<CheckBox>(R.id.cbConfirmSharedUpload)
-
-        AlertDialog.Builder(this)
-            .setTitle("Prześlij zdjęcia")
-            .setMessage("Przesłane zdjęcia będą dostępne dla wszystkich towarzyszy podróży.")
-            .setView(dialogView)
-            .setPositiveButton("Prześlij") { _, _ ->
-                if (checkbox.isChecked) {
-                    uploadAllLocalPhotosToDrive()
-                } else {
-                    Toast.makeText(this, "Zaznacz potwierdzenie", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Anuluj", null)
-            .show()
-    }
 
     private fun uploadSharedPhotosToDrive(uris: List<Uri>) {
         val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
@@ -537,25 +742,64 @@ class TripDetailsActivity : AppCompatActivity() {
     }
 
     private fun fetchCompanions() {
-        db.collection("trips").document(tripId).get().addOnSuccessListener { document ->
-            val companionsList = document.get("companions") as? List<String> ?: listOf()
-            val companions = companionsList.map { Companion(it) }.toMutableList()
-            setupCompanionsRecyclerView(companions)
+        val currentUser = auth.currentUser ?: return
+
+        db.collection("trips").document(tripId).get().addOnSuccessListener { tripDoc ->
+            val companionsEmails = tripDoc.get("companions") as? List<String> ?: listOf()
+            val ownerId = tripDoc.getString("userId") ?: return@addOnSuccessListener
+
+            db.collection("users")
+                .whereEqualTo("userId", ownerId) // <-- tutaj poprawiamy
+                .limit(1)
+                .get()
+                .addOnSuccessListener { userSnapshot ->
+                    val ownerEmail = userSnapshot.documents.firstOrNull()?.getString("email")
+                    if (ownerEmail == null) {
+                        Toast.makeText(this, "Nie znaleziono emaila właściciela", Toast.LENGTH_SHORT).show()
+                        return@addOnSuccessListener
+                    }
+
+                    val companions = mutableListOf<Companion>()
+
+                    // Dodaj założyciela na początek
+                    companions.add(Companion("$ownerEmail (założyciel)"))
+
+                    // Dodaj pozostałych (bez duplikatu założyciela)
+                    companionsEmails
+                        .filter { it != ownerEmail }
+                        .forEach { companions.add(Companion(it)) }
+
+                    setupCompanionsRecyclerView(companions)
+                }
         }
     }
 
+
     private fun setupCompanionsRecyclerView(companions: MutableList<Companion>) {
         binding.rvCompanions.layoutManager = LinearLayoutManager(this)
-        binding.rvCompanions.adapter = CompanionsAdapter(companions) { companion ->
-            AlertDialog.Builder(this)
-                .setMessage("Czy na pewno chcesz usunąć ${companion.email}?")
-                .setPositiveButton("Usuń") { _, _ ->
-                    removeCompanionFromTrip(companion)
-                }
-                .setNegativeButton("Anuluj", null)
-                .show()
+
+        companionsAdapter = CompanionsAdapter(companions) { companion ->
+            if (!isCurrentUserOwner) {
+                Toast.makeText(this, "Tylko założyciel może usuwać towarzyszy", Toast.LENGTH_SHORT).show()
+                return@CompanionsAdapter
+            }
+
+            if (companion.email.contains("(założyciel)")) {
+                Toast.makeText(this, "Nie można usunąć założyciela wycieczki", Toast.LENGTH_SHORT).show()
+            } else {
+                AlertDialog.Builder(this)
+                    .setMessage("Czy na pewno chcesz usunąć ${companion.email}?")
+                    .setPositiveButton("Usuń") { _, _ -> removeCompanionFromTrip(companion) }
+                    .setNegativeButton("Anuluj", null)
+                    .show()
+            }
         }
+
+
+        binding.rvCompanions.adapter = companionsAdapter
     }
+
+
 
 
     private fun showCompanionSelectionDialog() {
@@ -675,15 +919,52 @@ class TripDetailsActivity : AppCompatActivity() {
             }
     }
 
-    private fun fetchTicketsForTrip() {
-        db.collection("tickets")
+    private fun fetchPhotosForTrip() {
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        db.collection("photos")
             .whereEqualTo("tripId", tripId)
+            .whereEqualTo("userId", currentUserId) // TYLKO moje zdjęcia
             .get()
             .addOnSuccessListener { result ->
-                val tickets = result.mapNotNull { document ->
-                    val fileUrl = document.getString("fileUrl") ?: return@mapNotNull null
-                    Ticket(document.id, fileUrl)
+                val photos = result.mapNotNull {
+                    val photoUrl = it.getString("photoUrl") ?: return@mapNotNull null
+                    Photo(it.id, photoUrl)
                 }
+
+                binding.rvPhotos.layoutManager =
+                    LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+                binding.rvPhotos.adapter = PhotoAdapter(
+                    context = this,
+                    photos = photos,
+                    onClick = { photo, position ->
+                        val photoUrls = photos.map { it.photoUrl }
+                        val intent = Intent(this, FullScreenPhotosActivity::class.java)
+                        intent.putStringArrayListExtra("photoList", ArrayList(photoUrls))
+                        intent.putExtra("startIndex", position)
+                        startActivity(intent)
+                    },
+                    onDelete = { photo -> deletePhoto(photo) }
+                )
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Błąd pobierania zdjęć", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun fetchTicketsForTrip() {
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        db.collection("tickets")
+            .whereEqualTo("tripId", tripId)
+            .whereEqualTo("userId", currentUserId) // TYLKO moje bilety
+            .get()
+            .addOnSuccessListener { result ->
+                val tickets = result.mapNotNull {
+                    val fileUrl = it.getString("fileUrl") ?: return@mapNotNull null
+                    Ticket(it.id, fileUrl)
+                }
+
                 binding.rvTickets.layoutManager =
                     LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
                 binding.rvTickets.adapter = TicketAdapter(
@@ -696,48 +977,14 @@ class TripDetailsActivity : AppCompatActivity() {
                         }
                         startActivity(viewIntent)
                     },
-                    onDelete = { ticket ->
-                        deleteTicket(ticket)
-                    }
+                    onDelete = { ticket -> deleteTicket(ticket) }
                 )
             }
-            .addOnFailureListener { exception ->
-                Toast.makeText(this, "Błąd pobierania biletów: $exception", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener {
+                Toast.makeText(this, "Błąd pobierania biletów", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun fetchPhotosForTrip() {
-        db.collection("photos")
-            .whereEqualTo("tripId", tripId)
-            .get()
-            .addOnSuccessListener { result ->
-                val photos = result.mapNotNull { document ->
-                    val photoUrl = document.getString("photoUrl") ?: return@mapNotNull null
-                    Photo(document.id, photoUrl)
-                }
-                binding.rvPhotos.layoutManager =
-                    LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-                binding.rvPhotos.adapter = PhotoAdapter(
-                    context = this,
-                    photos = photos,
-                    onClick = { photo, position ->
-                        // Utwórz listę ścieżek zdjęć
-                        val photoUrls = ArrayList<String>()
-                        photos.forEach { photoUrls.add(it.photoUrl) }
-                        val intent = Intent(this, FullScreenPhotosActivity::class.java)
-                        intent.putStringArrayListExtra("photoList", photoUrls)
-                        intent.putExtra("startIndex", position)
-                        startActivity(intent)
-                    },
-                    onDelete = { photo ->
-                        deletePhoto(photo)
-                    }
-                )
-            }
-            .addOnFailureListener { exception ->
-                Toast.makeText(this, "Błąd pobierania zdjęć: ${exception.localizedMessage}", Toast.LENGTH_SHORT).show()
-            }
-    }
 
 
     // Kopiuje plik z podanego URI do lokalnego katalogu aplikacji i zwraca jego absolutną ścieżkę.
