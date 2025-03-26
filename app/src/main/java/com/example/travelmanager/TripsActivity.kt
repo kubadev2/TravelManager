@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
@@ -37,7 +39,6 @@ class TripsActivity : AppCompatActivity() {
     private val tripsList = mutableListOf<Trip>()
     private lateinit var btnFriends: TextView
     private lateinit var menuClose: View
-
 
     override fun onStart() {
         super.onStart()
@@ -127,8 +128,6 @@ class TripsActivity : AppCompatActivity() {
             }
         }
 
-
-
         btnHamburger.setOnClickListener {
             if (tvEmail.visibility == View.GONE) {
                 tvEmail.visibility = View.VISIBLE
@@ -160,10 +159,27 @@ class TripsActivity : AppCompatActivity() {
         }
 
         btnLogout.setOnClickListener {
-            auth.signOut()
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            // Wylogowanie z Firebase
+            FirebaseAuth.getInstance().signOut()
+
+            // Jeśli w tym pliku nie masz googleSignInClient, musisz go stworzyć:
+            val clientId = getString(R.string.default_web_client_id)
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestProfile()
+                .requestIdToken(clientId)
+                .build()
+            val googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+            // Wylogowanie z Google
+            googleSignInClient.signOut().addOnCompleteListener {
+                // Teraz user jest wylogowany i przy następnym signIn() będzie wybór konta
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            }
         }
+
+
 
         menuClose.setOnClickListener {
             tvEmail.visibility = View.GONE
@@ -179,23 +195,35 @@ class TripsActivity : AppCompatActivity() {
             override fun handleOnBackPressed() {
                 if (addTripForm.visibility == View.VISIBLE) {
                     hideAddTripForm()
-                } else if (tvEmail.visibility == View.VISIBLE
-                    && btnLogout.visibility == View.VISIBLE
-                    && btnFriends.visibility == View.VISIBLE
-                    && menuClose.visibility == View.VISIBLE
+                } else if (
+                    tvEmail.visibility == View.VISIBLE &&
+                    btnLogout.visibility == View.VISIBLE &&
+                    btnFriends.visibility == View.VISIBLE &&
+                    menuClose.visibility == View.VISIBLE
                 ) {
                     tvEmail.visibility = View.GONE
                     btnLogout.visibility = View.GONE
                     btnFriends.visibility = View.GONE
                     menuClose.visibility = View.GONE
                 } else {
-                    showLogoutConfirmation()
+                    showCloseAppConfirmation()
                 }
             }
         })
     }
 
-
+    private fun showCloseAppConfirmation() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Zamknąć aplikację?")
+            .setMessage("Czy na pewno chcesz zamknąć aplikację?")
+            .setPositiveButton("Tak") { _, _ ->
+                finishAffinity()
+            }
+            .setNegativeButton("Nie") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
 
     private fun hideAddTripForm() {
         addTripForm.visibility = View.GONE
@@ -218,30 +246,11 @@ class TripsActivity : AppCompatActivity() {
         datePicker.show(supportFragmentManager, "date_range_picker")
     }
 
-    private fun showLogoutConfirmation() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Czy chcesz się wylogować?")
-            .setMessage("Po wylogowaniu musisz zalogować się ponownie, aby przeglądać swoje podróże.")
-            .setPositiveButton("Tak") { _, _ ->
-                auth.signOut()
-                // Przejdź do ekranu logowania (MainActivity):
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                finish()  // Kończymy TripsActivity, by nie można było wrócić do niej przy cofnięciu
-            }
-            .setNegativeButton("Nie") { dialog, _ ->
-                dialog.dismiss()  // Zamykamy panel, pozostajemy na ekranie listy
-            }
-            .show()
-    }
-
-
     private fun fetchTrips() {
         val currentUser = auth.currentUser ?: return
 
         tripsList.clear()
 
-        // Pobierz wycieczki, które użytkownik utworzył
         db.collection("trips")
             .whereEqualTo("userId", currentUser.uid)
             .get()
@@ -251,7 +260,6 @@ class TripsActivity : AppCompatActivity() {
                     tripsList.add(trip)
                 }
 
-                // Pobierz wycieczki, gdzie użytkownik jest towarzyszem
                 db.collection("trips")
                     .whereArrayContains("companions", currentUser.email ?: "")
                     .get()
@@ -272,5 +280,4 @@ class TripsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Błąd pobierania wycieczek", Toast.LENGTH_SHORT).show()
             }
     }
-
 }

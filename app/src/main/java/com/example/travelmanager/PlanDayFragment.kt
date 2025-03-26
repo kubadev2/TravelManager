@@ -64,33 +64,28 @@ class PlanDayFragment : Fragment() {
     }
 
     private fun showEditPlanDialog(currentText: String) {
-        // Inflacja widoku dialogu
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_plan, null)
         val editTextPlan = dialogView.findViewById<EditText>(R.id.editTextPlan)
         val btnChooseFile = dialogView.findViewById<View>(R.id.btnChooseFile)
         editTextPlan.setText(currentText)
 
-        // Obsługa przycisku wyboru pliku PDF w dialogu
         btnChooseFile.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "application/pdf"
             }
-            // Wywołanie wyboru pliku PDF
             startActivityForResult(intent, PICK_PDF_REQUEST_CODE)
         }
 
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Edytuj plan dnia")
             .setView(dialogView)
-            .setPositiveButton("Zapisz") { dialogInterface, _ ->
+            .setPositiveButton("Zapisz") { d, _ ->
                 val newPlan = editTextPlan.text.toString()
                 savePlan(newPlan)
-                dialogInterface.dismiss()
+                d.dismiss()
             }
-            .setNegativeButton("Anuluj") { dialogInterface, _ ->
-                dialogInterface.dismiss()
-            }
+            .setNegativeButton("Anuluj") { d, _ -> d.dismiss() }
             .create()
 
         dialog.show()
@@ -121,6 +116,9 @@ class PlanDayFragment : Fragment() {
                 .document(docId)
                 .set(planData)
                 .addOnSuccessListener {
+                    // [CHANGE] Sprawdzamy, czy fragment wciąż istnieje
+                    if (_binding == null || !isAdded) return@addOnSuccessListener
+
                     Toast.makeText(requireContext(), "Plan dnia $dayNumber zapisany!", Toast.LENGTH_SHORT).show()
                     binding.tvPlanDetails.text = newPlan
                 }
@@ -138,10 +136,15 @@ class PlanDayFragment : Fragment() {
             .document(docId)
             .get()
             .addOnSuccessListener { doc ->
+                if (_binding == null || !isAdded) return@addOnSuccessListener
+
                 if (doc.exists()) {
                     val planDetails = doc.getString("planDetails") ?: ""
                     binding.tvPlanDetails.text = planDetails
                 }
+            }
+            .addOnFailureListener {
+                // obsługa błędu
             }
     }
 
@@ -151,9 +154,11 @@ class PlanDayFragment : Fragment() {
         db.collection("tickets")
             .whereEqualTo("tripId", tripId)
             .whereEqualTo("dayNumber", dayNumber)
-            .whereEqualTo("userId", currentUserId)  // <-- tylko bilety zalogowanego użytkownika
+            .whereEqualTo("userId", currentUserId)
             .get()
             .addOnSuccessListener { result ->
+                if (_binding == null || !isAdded) return@addOnSuccessListener
+
                 val tickets = mutableListOf<Ticket>()
                 for (document in result) {
                     val fileUrl = document.getString("fileUrl") ?: ""
@@ -164,24 +169,26 @@ class PlanDayFragment : Fragment() {
                 }
                 binding.rvDayTickets.layoutManager =
                     LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-                binding.rvDayTickets.adapter = TicketAdapter(requireContext(), tickets, onClick = { fileUrl ->
-                    val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(fileUrl), "application/pdf")
-                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    }
-                    startActivity(viewIntent)
-                }, onDelete = { ticket ->
-                    deleteTicket(ticket)
-                })
+                binding.rvDayTickets.adapter = TicketAdapter(requireContext(), tickets,
+                    onClick = { fileUrl ->
+                        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(Uri.parse(fileUrl), "application/pdf")
+                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        }
+                        startActivity(viewIntent)
+                    },
+                    onDelete = { ticket -> deleteTicket(ticket) }
+                )
             }
     }
-
 
     private fun deleteTicket(ticket: Ticket) {
         db.collection("tickets")
             .document(ticket.ticketId)
             .delete()
             .addOnSuccessListener {
+                if (_binding == null || !isAdded) return@addOnSuccessListener
+
                 Toast.makeText(requireContext(), "Bilet usunięty", Toast.LENGTH_SHORT).show()
                 loadDayTickets()
             }
@@ -209,12 +216,14 @@ class PlanDayFragment : Fragment() {
         val ticketData = hashMapOf(
             "fileUrl" to uri.toString(),
             "tripId" to tripId,
-            "dayNumber" to dayNumber,  // przypisanie biletu do konkretnego dnia
+            "dayNumber" to dayNumber,
             "userId" to currentUser.uid
         )
         db.collection("tickets")
             .add(ticketData)
             .addOnSuccessListener {
+                if (_binding == null || !isAdded) return@addOnSuccessListener
+
                 Toast.makeText(requireContext(), "Bilet dodany do planu dnia", Toast.LENGTH_SHORT).show()
                 loadDayTickets()
             }

@@ -43,6 +43,8 @@ class TripDetailsFragment : Fragment(R.layout.fragment_trip_details) {
                     val endDateStr = document.getString("endDate")
 
                     if (!startDateStr.isNullOrEmpty() && !endDateStr.isNullOrEmpty()) {
+                        if (!isAdded || context == null) return@addOnSuccessListener
+
                         refreshPlans(startDateStr, endDateStr)
                     } else {
                         Toast.makeText(requireContext(), "Brak dat wycieczki", Toast.LENGTH_SHORT).show()
@@ -58,6 +60,7 @@ class TripDetailsFragment : Fragment(R.layout.fragment_trip_details) {
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun refreshPlans(startDateStr: String, endDateStr: String) {
+        if (!isAdded || context == null) return
         val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
         try {
             val startDate = LocalDate.parse(startDateStr, formatter)

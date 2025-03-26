@@ -9,6 +9,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.SignInButton
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -25,31 +26,38 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // 1) Inicjalizujemy FirebaseAuth, Firestore
         firebaseAuth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
 
+        // 2) Inicjalizujemy GoogleSignInClient
         val clientId = getString(R.string.default_web_client_id)
-
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
-            .requestIdToken(clientId)
+            .requestIdToken(clientId)  // <-- ważne przy logowaniu przez Firebase
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        findViewById<com.google.android.gms.common.SignInButton>(R.id.sign_in_button).setOnClickListener {
-            signIn()
+        // 3) Sprawdzamy, czy użytkownik jest zalogowany
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser != null) {
+            navigateToTripsActivity()
+            finish()
+            return
+        }
+
+        // 4) Jeśli niezalogowany, konfigurujemy przycisk do logowania
+        findViewById<SignInButton>(R.id.sign_in_button).setOnClickListener {
+            signIn() // tutaj już nie wywołujemy signOut()
         }
     }
 
     private fun signIn() {
-        googleSignInClient.signOut().addOnCompleteListener {
-            val signInIntent = googleSignInClient.signInIntent
-            startActivityForResult(signInIntent, RC_SIGN_IN)
-        }
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -84,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     private fun saveUserToFirestore(account: GoogleSignInAccount) {
         val currentUser = firebaseAuth.currentUser
         if (currentUser == null) {
@@ -94,16 +103,18 @@ class MainActivity : AppCompatActivity() {
         val userDoc = firestore.collection("users").document(account.email ?: currentUser.uid)
 
         userDoc.get().addOnSuccessListener { document ->
-            val userData = mapOf(
-                "name" to (account.displayName ?: "Nieznane imię"),
-                "email" to account.email,
-                "photoUrl" to (account.photoUrl?.toString() ?: ""),
-                "userId" to currentUser.uid, // <- DODAJ TO!
-                "friends" to listOf<String>()
-            )
-
             if (!document.exists()) {
-                userDoc.set(userData)
+                // Dokument jeszcze nie istnieje – tworzymy nowego usera w Firestore
+                val newUserData = mapOf(
+                    "name" to (account.displayName ?: "Nieznane imię"),
+                    "email" to account.email,
+                    "photoUrl" to (account.photoUrl?.toString() ?: ""),
+                    "userId" to currentUser.uid,
+                    // Dajemy pustą listę friends, bo to pierwszy zapis
+                    "friends" to listOf<String>()
+                )
+
+                userDoc.set(newUserData)
                     .addOnSuccessListener {
                         Log.d("MainActivity", "Nowy użytkownik zapisany w Firestore.")
                         navigateToTripsActivity(account)
@@ -112,11 +123,26 @@ class MainActivity : AppCompatActivity() {
                         Log.e("MainActivity", "Błąd zapisu użytkownika", e)
                         Toast.makeText(this, "Błąd zapisu użytkownika: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
+
             } else {
-                // Aktualizacja pól (w tym dodanie userId jeśli go brakowało)
-                userDoc.update(userData)
+                // Dokument istnieje – pobieramy starą listę friends
+                val oldFriends = document.get("friends") as? List<String> ?: emptyList()
+
+                val mergedFriends = oldFriends
+
+                // Teraz tworzymy mapę z DOKŁADNIE tym, co chcemy zaktualizować
+                val updatedUserData = mapOf(
+                    "name" to (account.displayName ?: "Nieznane imię"),
+                    "email" to account.email,
+                    "photoUrl" to (account.photoUrl?.toString() ?: ""),
+                    "userId" to currentUser.uid,
+                    // Zamiast pustej listy – wykorzystujemy starą listę:
+                    "friends" to mergedFriends
+                )
+
+                userDoc.update(updatedUserData)
                     .addOnSuccessListener {
-                        Log.d("MainActivity", "Użytkownik zaktualizowany w Firestore.")
+                        Log.d("MainActivity", "Użytkownik zaktualizowany w Firestore (zachowano friends).")
                         navigateToTripsActivity(account)
                     }
                     .addOnFailureListener { e ->
@@ -127,11 +153,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
+    private fun navigateToTripsActivity() {
+        // Scenariusz: user jest już zalogowany
+        val intent = Intent(this, TripsActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
 
     private fun navigateToTripsActivity(account: GoogleSignInAccount) {
+        // Scenariusz: właśnie zalogował się przez Google
         Toast.makeText(this, "Logowanie powiodło się!", Toast.LENGTH_SHORT).show()
-
         val intent = Intent(this, TripsActivity::class.java).apply {
             putExtra("userName", account.displayName)
             putExtra("userEmail", account.email)
