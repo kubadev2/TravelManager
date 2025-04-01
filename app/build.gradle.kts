@@ -13,18 +13,27 @@ android {
         viewBinding = true
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:/Users/jakub/OneDrive/Dokumenty/Studia WSB/Semestr6/Seminarium/TravelManager-key.jks")
+            storePassword = "tm123$"
+            keyAlias = "TravelManager"
+            keyPassword = "tm123$"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.travelmanager"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -37,6 +46,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     packaging {
         resources {
             excludes += setOf(
@@ -76,5 +86,7 @@ dependencies {
     annotationProcessor ("com.github.bumptech.glide:compiler:4.12.0")
     implementation ("com.google.api-client:google-api-client-android:2.3.0")
     implementation ("com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0")
+    implementation ("androidx.media3:media3-exoplayer:1.2.1")
+    implementation ("androidx.media3:media3-ui:1.2.1")
 
 }

@@ -13,8 +13,10 @@ import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.travelmanager.databinding.ActivityTripDetailsBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -65,7 +67,7 @@ class TripDetailsActivity : AppCompatActivity() {
         if (resultCode == Activity.RESULT_OK && data != null) {
             when (requestCode) {
                 RC_SIGN_IN, RC_AUTHORIZATION -> {
-                    createSharedFolderOnDrive()
+                    uploadAllLocalPhotosToDrive()
                 }
                 PICK_PDF_REQUEST_CODE -> {
                     val pdfUri = data.data
@@ -76,15 +78,13 @@ class TripDetailsActivity : AppCompatActivity() {
                         val count = data.clipData!!.itemCount
                         for (i in 0 until count) {
                             val photoUri = data.clipData!!.getItemAt(i).uri
-                            copyFileToLocalStorage(photoUri)?.let { localPath ->
-                                savePhotoPathToFirestore(localPath)
-                            }
+                            savePhotoPathToFirestore(photoUri.toString())
+
                         }
                     } else {
                         data.data?.let { photoUri ->
-                            copyFileToLocalStorage(photoUri)?.let { localPath ->
-                                savePhotoPathToFirestore(localPath)
-                            }
+                            savePhotoPathToFirestore(photoUri.toString())
+
                         }
                     }
                 }
@@ -139,12 +139,13 @@ class TripDetailsActivity : AppCompatActivity() {
         }
 
         binding.btnAddPhoto.setOnClickListener {
-            val openPhotoIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            val openMediaIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
-                type = "image/*"
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
             }
-            startActivityForResult(openPhotoIntent, PICK_PHOTO_REQUEST_CODE)
+            startActivityForResult(openMediaIntent, PICK_PHOTO_REQUEST_CODE)
         }
 
         binding.btnUploadSharedPhotos.setOnClickListener {
@@ -635,11 +636,13 @@ class TripDetailsActivity : AppCompatActivity() {
             }
             .addOnFailureListener { exception ->
                 if (!isFinishing && !isDestroyed) {
-                    Toast.makeText(this, "Błąd pobierania danych: $exception", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Błąd pobierania danych: $exception", Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
     }
 
+    @OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun fetchPhotosForTrip() {
         val currentUserId = auth.currentUser?.uid ?: return
 
@@ -674,27 +677,46 @@ class TripDetailsActivity : AppCompatActivity() {
 
     private fun copyFileToLocalStorage(uri: Uri): String? {
         return try {
+            val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
+            val extension = when {
+                mimeType.startsWith("video") -> ".mp4"
+                mimeType.startsWith("image") -> ".jpg"
+                else -> ".dat" // na wszelki wypadek
+            }
+
             val folder = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             if (folder != null && !folder.exists()) {
                 folder.mkdirs()
             }
-            val fileName = "photo_${System.currentTimeMillis()}.jpg"
+
+            val fileName = "media_${System.currentTimeMillis()}$extension"
             val file = File(folder, fileName)
-            val inputStream = contentResolver.openInputStream(uri)
-            val outputStream = FileOutputStream(file)
-            inputStream?.copyTo(outputStream)
-            inputStream?.close()
-            outputStream.close()
+
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
             file.absolutePath
         } catch (e: Exception) {
-            Toast.makeText(this, "Błąd kopiowania zdjęcia: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Błąd kopiowania pliku: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             null
         }
     }
 
+
     private fun savePhotoPathToFirestore(localPath: String) {
         if (!isNetworkAvailable()) {
             showOfflineInfo()
+        }
+
+        val uri = Uri.parse(localPath)
+
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            e.printStackTrace()
         }
 
         val photoData = hashMapOf(
@@ -715,6 +737,7 @@ class TripDetailsActivity : AppCompatActivity() {
                 }
             }
     }
+
 
     private fun deletePhoto(photo: Photo) {
         if (!isNetworkAvailable()) {
@@ -844,7 +867,10 @@ class TripDetailsActivity : AppCompatActivity() {
                     Toast.makeText(this, "Wybierz co chcesz przesłać", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                uploadSelectedDataToDrive(selectedItems)
+                ensureStoragePermissions {
+                    uploadSelectedDataToDrive(selectedItems)
+                }
+
             }
             .setNegativeButton("Anuluj", null)
             .show()
@@ -863,7 +889,15 @@ class TripDetailsActivity : AppCompatActivity() {
     }
 
     private fun uploadAllLocalPhotosToDrive() {
-        val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
+        Log.d("UploadPhotos", "⏳ Rozpoczynamy uploadAllLocalPhotosToDrive")
+
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        if (account == null) {
+            Log.w("UploadPhotos", "❌ Brak zalogowanego konta Google - wymagane ponowne logowanie")
+            requestSignIn()
+            return
+        }
+
         val credential = GoogleAccountCredential.usingOAuth2(this, listOf(DriveScopes.DRIVE_FILE))
         credential.selectedAccount = account.account
 
@@ -871,56 +905,87 @@ class TripDetailsActivity : AppCompatActivity() {
             .setApplicationName("TravelManager").build()
 
         db.collection("trips").document(tripId).get().addOnSuccessListener { doc ->
-            if (isFinishing || isDestroyed) return@addOnSuccessListener
-
-            val folderId = doc.getString("sharedFolderId") ?: return@addOnSuccessListener
+            val folderId = doc.getString("sharedFolderId")
+            if (folderId.isNullOrEmpty()) {
+                Log.e("UploadPhotos", "❌ sharedFolderId nie istnieje w Firestore")
+                return@addOnSuccessListener
+            }
 
             db.collection("photos")
                 .whereEqualTo("tripId", tripId)
                 .get()
                 .addOnSuccessListener { result ->
-                    if (isFinishing || isDestroyed) return@addOnSuccessListener
-
-                    val localPhotoPaths = result.mapNotNull { it.getString("photoUrl") }
+                    val photoUris = result.mapNotNull { it.getString("photoUrl") }
+                    Log.d("UploadPhotos", "📷 Znaleziono ${photoUris.size} lokalnych zdjęć/wideo")
 
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            val existingDriveFileNames = drive.files().list()
-                                .setQ("'$folderId' in parents")
-                                .setFields("files(name)")
-                                .execute()
-                                .files
-                                .mapNotNull { it.name }
-
-                            for (localPath in localPhotoPaths) {
-                                val file = File(localPath)
-                                if (!file.exists()) continue
-
-                                if (file.name in existingDriveFileNames) {
-                                    Log.d("UploadPhotos", "Pomijam ${file.name}, już istnieje.")
-                                    continue
+                            val existingDriveFileNames = try {
+                                drive.files().list()
+                                    .setQ("'$folderId' in parents")
+                                    .setFields("files(name)")
+                                    .execute()
+                                    .files
+                                    .mapNotNull { it.name }
+                            } catch (e: UserRecoverableAuthIOException) {
+                                Log.w("UploadPhotos", "🔐 Potrzebna dodatkowa autoryzacja – uruchamiam ekran zgody")
+                                runOnUiThread {
+                                    startActivityForResult(e.intent, RC_AUTHORIZATION)
                                 }
+                                return@launch
+                            }
 
+
+                            for (uriStr in photoUris) {
                                 try {
+                                    val uri = Uri.parse(uriStr)
+                                    val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
+                                    val extension = when {
+                                        mimeType.startsWith("video") -> ".mp4"
+                                        mimeType.startsWith("image") -> ".jpg"
+                                        else -> ".dat"
+                                    }
+
+                                    val fileName = "media_${System.currentTimeMillis()}$extension"
+
+                                    if (fileName in existingDriveFileNames) {
+                                        Log.d("UploadPhotos", "⏭️ Pomijam $fileName (już na Dysku)")
+                                        continue
+                                    }
+
+                                    val inputStream = contentResolver.openInputStream(uri)
+                                    if (inputStream == null) {
+                                        Log.w("UploadPhotos", "⚠️ Nie udało się otworzyć InputStream z $uri")
+                                        continue
+                                    }
+
                                     val fileMetadata = com.google.api.services.drive.model.File().apply {
-                                        name = file.name
+                                        name = fileName
                                         parents = listOf(folderId)
                                     }
-                                    val mediaContent = com.google.api.client.http.FileContent("image/jpeg", file)
+
+                                    val mediaContent = com.google.api.client.http.InputStreamContent(
+                                        mimeType, inputStream
+                                    )
+
                                     drive.files().create(fileMetadata, mediaContent)
                                         .setFields("id")
                                         .execute()
+
+                                    Log.d("UploadPhotos", "✅ Przesłano $fileName")
+
                                 } catch (e: Exception) {
-                                    Log.e("UploadPhotos", "Błąd uploadu: ${e.localizedMessage}")
+                                    Log.e("UploadPhotos", "❌ Błąd uploadu $uriStr: ${e.localizedMessage}", e)
                                 }
                             }
 
                             withContext(Dispatchers.Main) {
                                 if (isFinishing || isDestroyed) return@withContext
-                                Toast.makeText(this@TripDetailsActivity, "Nowe zdjęcia przesłane na Dysk", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@TripDetailsActivity, "✅ Nowe multimedia przesłane na Dysk", Toast.LENGTH_SHORT).show()
                             }
 
                         } catch (e: Exception) {
+                            Log.e("UploadPhotos", "❌ Błąd pobierania plików z Dysku: ${e.localizedMessage}", e)
                             withContext(Dispatchers.Main) {
                                 if (!isFinishing && !isDestroyed) {
                                     Toast.makeText(this@TripDetailsActivity, "Błąd pobierania plików z Dysku", Toast.LENGTH_SHORT).show()
@@ -931,6 +996,8 @@ class TripDetailsActivity : AppCompatActivity() {
                 }
         }
     }
+
+
 
     private fun uploadTransportTicketsToDrive() {
         val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
@@ -1106,5 +1173,24 @@ class TripDetailsActivity : AppCompatActivity() {
             }
         }
     }
+    private fun ensureStoragePermissions(onGranted: () -> Unit) {
+        val permissions = arrayOf(
+            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+
+        val missingPermissions = permissions.filter {
+            checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isEmpty()) {
+            onGranted()
+        } else {
+            requestPermissions(missingPermissions.toTypedArray(), 1234)
+            // Po zaakceptowaniu użytkownik musi kliknąć jeszcze raz przycisk
+            Toast.makeText(this, "Nadaj uprawnienia i spróbuj ponownie", Toast.LENGTH_LONG).show()
+        }
+    }
+
 
 }

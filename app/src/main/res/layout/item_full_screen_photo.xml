@@ -1,17 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout
-    xmlns:android="http://schemas.android.com/apk/res/android">
-    <data>
-        <!-- Zmienne, jeśli potrzebne -->
-    </data>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <data></data>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+
         <ImageView
             android:id="@+id/fullScreenImageView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitCenter"
-            android:contentDescription="@string/photo_desc"/>
+            android:adjustViewBounds="true"
+            android:visibility="visible" />
+
+        <VideoView
+            android:id="@+id/fullScreenVideoView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
     </FrameLayout>
 </layout>

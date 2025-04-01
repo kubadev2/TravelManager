@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "761168923809",
+    "project_id": "travelmanager-71c62",
+    "storage_bucket": "travelmanager-71c62.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761168923809:android:d38aaf732d1e9e6c39b4e0",
+        "android_client_info": {
+          "package_name": "com.example.travelmanager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "761168923809-3vfcft84bf6hf90bgljrqfhckcoe5fsa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.travelmanager",
+            "certificate_hash": "06366efeac1fbe3068c824282fa127920ad87ed5"
+          }
+        },
+        {
+          "client_id": "761168923809-had4bcavbsl8mmplro6fb5hto4tt3jnb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.travelmanager",
+            "certificate_hash": "2979ab14e55cd1f37f3a592e09b887ec004c31d9"
+          }
+        },
+        {
+          "client_id": "761168923809-k4ek2f4gklrdn51uuaj8c90ga2kki32m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.travelmanager",
+            "certificate_hash": "0433b50270df50e297719a7c2c79eeb66068f7a3"
+          }
+        },
+        {
+          "client_id": "761168923809-6b9sc0l414455hdcttqs8de5upc0duj8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCakHTE8A_5EAsWKIxKeIpc39gkyGBrmzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "761168923809-6b9sc0l414455hdcttqs8de5upc0duj8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

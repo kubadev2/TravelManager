@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "761168923809-had4bcavbsl8mmplro6fb5hto4tt3jnb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.travelmanager",
+            "certificate_hash": "2979ab14e55cd1f37f3a592e09b887ec004c31d9"
+          }
+        },
+        {
           "client_id": "761168923809-k4ek2f4gklrdn51uuaj8c90ga2kki32m.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
