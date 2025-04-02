@@ -9,10 +9,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.example.travelmanager.PlanTicketAdapter
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.fragment.app.Fragment
+import androidx.media3.common.util.UnstableApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.travelmanager.databinding.FragmentPlanDayBinding
 import com.google.firebase.auth.FirebaseAuth
@@ -28,8 +31,8 @@ class PlanDayFragment : Fragment() {
     private val db = FirebaseFirestore.getInstance()
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
-    private val PICK_PDF_REQUEST_CODE = 2001
-    private var selectedPdfUri: Uri? = null
+    private val PICK_FILE_REQUEST_CODE = 2001
+    private var selectedFileUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,9 +75,11 @@ class PlanDayFragment : Fragment() {
         btnChooseFile.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
-                type = "application/pdf"
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/pdf", "image/*"))
             }
-            startActivityForResult(intent, PICK_PDF_REQUEST_CODE)
+            startActivityForResult(intent, PICK_FILE_REQUEST_CODE )
+
         }
 
         val dialog = AlertDialog.Builder(requireContext())
@@ -148,6 +153,7 @@ class PlanDayFragment : Fragment() {
             }
     }
 
+    @OptIn(UnstableApi::class)
     private fun loadDayTickets() {
         val currentUserId = auth.currentUser?.uid ?: return
 
@@ -169,16 +175,27 @@ class PlanDayFragment : Fragment() {
                 }
                 binding.rvDayTickets.layoutManager =
                     LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-                binding.rvDayTickets.adapter = TicketAdapter(requireContext(), tickets,
+                binding.rvDayTickets.adapter = PlanTicketAdapter(requireContext(), tickets,
                     onClick = { fileUrl ->
-                        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(Uri.parse(fileUrl), "application/pdf")
-                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        val uri = Uri.parse(fileUrl)
+                        val mimeType = requireContext().contentResolver.getType(uri)
+                        if (mimeType?.startsWith("image") == true) {
+                            val intent = Intent(requireContext(), FullScreenPhotosActivity::class.java).apply {
+                                putStringArrayListExtra("photoList", arrayListOf(fileUrl))
+                                putExtra("startIndex", 0)
+                            }
+                            startActivity(intent)
+                        } else {
+                            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/pdf")
+                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            }
+                            startActivity(viewIntent)
                         }
-                        startActivity(viewIntent)
                     },
                     onDelete = { ticket -> deleteTicket(ticket) }
                 )
+
             }
     }
 
@@ -199,13 +216,15 @@ class PlanDayFragment : Fragment() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_PDF_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            selectedPdfUri = data.data
-            if (selectedPdfUri != null) {
-                saveTicket(selectedPdfUri!!)
+        if (requestCode == PICK_FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
+            selectedFileUri = data.data
+            if (selectedFileUri != null) {
+                saveTicket(selectedFileUri!!)
             }
         }
     }
+
+
 
     private fun saveTicket(uri: Uri) {
         val currentUser = auth.currentUser

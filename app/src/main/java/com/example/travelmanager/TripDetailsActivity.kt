@@ -69,40 +69,72 @@ class TripDetailsActivity : AppCompatActivity() {
                 RC_SIGN_IN, RC_AUTHORIZATION -> {
                     uploadAllLocalPhotosToDrive()
                 }
+
                 PICK_PDF_REQUEST_CODE -> {
-                    val pdfUri = data.data
-                    pdfUri?.let { saveTicketUrlToFirestore(it) }
+                    val uri = data.data
+                    uri?.let {
+                        try {
+                            contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        } catch (e: SecurityException) {
+                            e.printStackTrace()
+                        }
+                        saveTicketUrlToFirestore(it)
+                    }
                 }
+
                 PICK_PHOTO_REQUEST_CODE -> {
                     if (data.clipData != null) {
                         val count = data.clipData!!.itemCount
                         for (i in 0 until count) {
                             val photoUri = data.clipData!!.getItemAt(i).uri
+                            try {
+                                contentResolver.takePersistableUriPermission(photoUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (e: SecurityException) {
+                                e.printStackTrace()
+                            }
                             savePhotoPathToFirestore(photoUri.toString())
-
                         }
                     } else {
                         data.data?.let { photoUri ->
+                            try {
+                                contentResolver.takePersistableUriPermission(photoUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (e: SecurityException) {
+                                e.printStackTrace()
+                            }
                             savePhotoPathToFirestore(photoUri.toString())
-
                         }
                     }
                 }
+
                 PICK_SHARED_PHOTOS_REQUEST_CODE -> {
                     val uris = mutableListOf<Uri>()
                     if (data.clipData != null) {
                         val count = data.clipData!!.itemCount
                         for (i in 0 until count) {
-                            uris.add(data.clipData!!.getItemAt(i).uri)
+                            val uri = data.clipData!!.getItemAt(i).uri
+                            try {
+                                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (e: SecurityException) {
+                                e.printStackTrace()
+                            }
+                            uris.add(uri)
                         }
                     } else {
-                        data.data?.let { uris.add(it) }
+                        data.data?.let {
+                            try {
+                                contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (e: SecurityException) {
+                                e.printStackTrace()
+                            }
+                            uris.add(it)
+                        }
                     }
                     uploadSharedPhotosToDrive(uris)
                 }
             }
         }
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,7 +165,8 @@ class TripDetailsActivity : AppCompatActivity() {
         binding.btnAddTicket.setOnClickListener {
             val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
-                type = "application/pdf"
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/pdf", "image/*"))
             }
             startActivityForResult(openDocIntent, PICK_PDF_REQUEST_CODE)
         }
@@ -999,6 +1032,7 @@ class TripDetailsActivity : AppCompatActivity() {
 
 
 
+    // ZMIANA: Obsługa zdjęć jako biletów
     private fun uploadTransportTicketsToDrive() {
         val account = GoogleSignIn.getLastSignedInAccount(this) ?: return requestSignIn()
         val credential = GoogleAccountCredential.usingOAuth2(this, listOf(DriveScopes.DRIVE_FILE))
@@ -1024,8 +1058,14 @@ class TripDetailsActivity : AppCompatActivity() {
                     for (ticketDoc in ticketsSnapshot.documents) {
                         val fileUrl = ticketDoc.getString("fileUrl") ?: continue
                         val uri = Uri.parse(fileUrl)
+                        val mimeType = contentResolver.getType(uri) ?: "application/pdf"
+                        val extension = when {
+                            mimeType.startsWith("image") -> ".jpg"
+                            mimeType.startsWith("video") -> ".mp4"
+                            else -> ".pdf"
+                        }
+                        val fileName = "transport_ticket_${System.currentTimeMillis()}$extension"
                         val inputStream = contentResolver.openInputStream(uri) ?: continue
-                        val fileName = "transport_ticket_${System.currentTimeMillis()}.pdf"
 
                         val fileMetadata = com.google.api.services.drive.model.File().apply {
                             name = fileName
@@ -1033,7 +1073,7 @@ class TripDetailsActivity : AppCompatActivity() {
                         }
 
                         val mediaContent = com.google.api.client.http.InputStreamContent(
-                            "application/pdf", inputStream
+                            mimeType, inputStream
                         )
 
                         drive.files().create(fileMetadata, mediaContent).execute()
@@ -1080,8 +1120,14 @@ class TripDetailsActivity : AppCompatActivity() {
 
                         val fileUrl = ticketDoc.getString("fileUrl") ?: continue
                         val uri = Uri.parse(fileUrl)
+                        val mimeType = contentResolver.getType(uri) ?: "application/pdf"
+                        val extension = when {
+                            mimeType.startsWith("image") -> ".jpg"
+                            mimeType.startsWith("video") -> ".mp4"
+                            else -> ".pdf"
+                        }
+                        val fileName = "plan_ticket_${System.currentTimeMillis()}$extension"
                         val inputStream = contentResolver.openInputStream(uri) ?: continue
-                        val fileName = "plan_ticket_${System.currentTimeMillis()}.pdf"
 
                         val fileMetadata = com.google.api.services.drive.model.File().apply {
                             name = fileName
@@ -1089,7 +1135,7 @@ class TripDetailsActivity : AppCompatActivity() {
                         }
 
                         val mediaContent = com.google.api.client.http.InputStreamContent(
-                            "application/pdf", inputStream
+                            mimeType, inputStream
                         )
 
                         drive.files().create(fileMetadata, mediaContent).execute()
@@ -1106,6 +1152,7 @@ class TripDetailsActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun createOrGetSubfolder(drive: Drive, parentId: String, folderName: String): String {
         val result = drive.files().list()
